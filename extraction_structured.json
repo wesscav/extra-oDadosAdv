@@ -1,24 +1,10 @@
 {
   "dados_medicos": {
-    "laudo_principal": {
-      "deficiencia_constatada": "Transtorno do Espectro Autista Infantil",
-      "CID_da_doenca": "F84.0, F90.0",
-      "data_do_laudo": "16/12/2025",
-      "especialidade_do_medico": "Psiquiatra",
-      "nome_do_medico": "Emanuel Cavalcante Silva",
-      "trecho_clinico_relevante": "Paciente apresenta quadro compatível com transtorno do espectro autista infantil, com início na primeira infância. Apresenta dificuldade importante de foco e manutenção em atividades estruturadas, brincadeiras disfuncionais, maneirismos motores, hipersensibilidade ao toque físico, entre outros sintomas. Há alta probabilidade de manutenção das dificuldades observadas, sem prognóstico de melhora funcional significativa no curto e médio prazo."
-    },
     "relatorio_escolar": {
       "data_emissao": "05 de dezembro de 2024",
       "primeiro_nome_do_autor": "Kgzla-Maria Herculano Oliveira",
-      "resumo": "Relatório escolar do aluno Everton Matheus Rocha Davi, com foco nas suas necessidades especiais e no impacto delas em seu desempenho escolar. O aluno apresenta dificuldades em acompanhar a turma, insegurança, crises de ansiedade, timidez, dispersão e dificuldades de comunicação. Recomenda-se acompanhamento psicológico para lidar com a ansiedade em atividades escolares e dificuldades de concentração."
+      "resumo": "EVERTON é um aluno com boa frequência escolar e acompanhamento familiar. E um aluno que não consegue acompanhar a turma, tendo dificuldade em todas as disciplinas, chegando a ficar inseguro, nervoso e com crises fortes de ansiedade. EVERTON é bastante tímido, disperso e muito calado. Durante muito tempo a família vem tentando de diversas formas, para que o mesmo se desenvolva, mas isso não tem tido resultados e tem causado algumas frustrações que acaba desencadeando outros problemas.",
+      "resumo_continuacao": "Por ser uma criança tímida, reservada e muito calado, se comunica pouquíssimo. Isso dificulta sua aprendizagem. Durante os momentos de maior desafio, como por exemplo: provas, mudança de rotina, interações sociais, o aluno tende a agitar-se, ficar ansioso, demonstrar irritação. Recomenda-se que o acompanhamento psicológico leve em consideração aspectos que devem ser explorados, como a ansiedade em atividades escolares, dificuldades de concentração. O aluno acima citado apresenta sintomas de defcite de atenção, compativel com TDH e investigação para outros. O aluno precisa de acompanhamento com outros profissionais."
     }
-  },
-  "qualificacao_parte_autora": {
-    "nome": "Miguel Ângelo Lima Clemente",
-    "cpf": "110.941.543-50"
-  },
-  "dados_socioeconomicos": null,
-  "dados_requerimento_inss": null,
-  "dados_processuais": null
+  }
 }

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
-
+# source .venv/bin/activate
 ## executar o script e salvar em extraction_output.json (padrão)
 # venv/bin/python3 extract_ocr.py "XMALC-LAUDO MÉDICO 16.12.25.pdf" -o extraction_output.json
 
-# venv/bin/python3 extract_ocr.py "08.XEMRD-LAUDO MEDICO 05.04.25.pdf" -o extraction_output.json
+# venv/bin/python3 extract_ocr.py "07.XEMRD-RELATORIO ESCOLAR 05.12.24.pdf" -o extraction_output.json
 
 
-# python3 extract_ocr.py "XMALC-LAUDO MÉDICO 16.12.25.pdf" -o extraction_output.json
+# python3 extract_ocr.py "laudo_digital.pdf" -o extraction_output.json
 
 """OCR extraction for PDF files.
 
@@ -16,10 +16,6 @@ and word-level data (bounding boxes and confidences). Outputs a JSON file.
 
 Usage:
     python extract_ocr.py input.pdf -o output.json
-
-Notes:
- - Requires Tesseract OCR installed and on PATH.
- - Requires poppler (for pdf2image). You can set POPPLER_PATH env var if needed.
 """
 import argparse
 import json
@@ -29,115 +25,84 @@ from typing import List, Dict, Any
 import re
 
 try:
-    from pdf2image import convert_from_path
-except Exception as e:
-    convert_from_path = None
-
-try:
-    import pytesseract
-    from pytesseract import Output
+    import pdfplumber
 except Exception:
-    pytesseract = None
-    Output = None
+    pdfplumber = None
 
 try:
     from PIL import Image
 except Exception:
-    print("Missing Python dependency 'Pillow'.\nPlease activate your virtualenv and install dependencies:\n  source .venv/bin/activate\n  pip install -r requirements.txt\nOr run the script with the venv python directly:\n  .venv/bin/python3 extract_ocr.py <input.pdf> -o <output.json>", file=sys.stderr)
-    sys.exit(1)
+    Image = None
 
 
 def check_dependencies() -> List[str]:
     missing = []
-    if pytesseract is None:
-        missing.append('pytesseract')
-    if convert_from_path is None:
-        missing.append('pdf2image')
-    # tesseract binary
-    if pytesseract is not None:
-        try:
-            _ = pytesseract.get_tesseract_version()
-        except Exception:
-            missing.append('tesseract (binary)')
+    if pdfplumber is None:
+        missing.append('pdfplumber')
     return missing
 
 
-def ocr_page(image: Image.Image, lang: str = 'por') -> Dict[str, Any]:
-    """Run OCR on a PIL Image and return structured data."""
-    # full text
-    text = pytesseract.image_to_string(image, lang=lang)
+def extract_pdf_text_pdfplumber(pdf_path: str) -> Dict[str, Any]:
+    """Extract text and word bboxes from a PDF using pdfplumber (no OCR).
 
-    data = pytesseract.image_to_data(image, output_type=Output.DICT, lang=lang)
-
-    words = []
-    n_boxes = len(data.get('text', []))
-    for i in range(n_boxes):
-        w = data['text'][i]
-        if not w or w.strip() == '':
-            continue
-        # normalize confidence which may be string or numeric depending on pytesseract version
-        conf_val = data['conf'][i]
-        conf = None
-        try:
-            if isinstance(conf_val, (int, float)):
-                conf = int(conf_val)
-            else:
-                s = str(conf_val).strip()
-                if s.lstrip('-').isdigit():
-                    conf = int(s)
-        except Exception:
-            conf = None
-
-        words.append({
-            'text': w,
-            'left': int(data['left'][i]),
-            'top': int(data['top'][i]),
-            'width': int(data['width'][i]),
-            'height': int(data['height'][i]),
-            'conf': conf,
-        })
-
-    return {'text': text, 'words': words}
-
-
-def extract_pdf(pdf_path: str, dpi: int = 300, poppler_path: str = None, lang: str = 'por') -> Dict[str, Any]:
-    """Extract OCR data for each page in the PDF."""
-    if convert_from_path is None:
-        raise RuntimeError('pdf2image is not available')
-
-    convert_kwargs = {'dpi': dpi}
-    if poppler_path:
-        convert_kwargs['poppler_path'] = poppler_path
-
-    images = convert_from_path(pdf_path, **convert_kwargs)
+    Returns same structure as the previous extract_pdf: {'source', 'page_count', 'pages'}
+    Each page has 'page_number', 'text', and 'words' where each word has
+    text,left,top,width,height,conf (conf will be None since pdfplumber doesn't provide it).
+    """
+    if pdfplumber is None:
+        raise RuntimeError('pdfplumber is not available')
 
     pages = []
-    for i, img in enumerate(images, start=1):
-        print(f'OCR page {i}/{len(images)}...')
-        page_data = ocr_page(img, lang=lang)
-        pages.append({'page_number': i, **page_data})
+    with pdfplumber.open(pdf_path) as pdf:
+        for i, page in enumerate(pdf.pages, start=1):
+            text = page.extract_text() or ""
+            words = []
+            # page.extract_words() returns dicts with x0,x1,top,bottom and text
+            try:
+                raw_words = page.extract_words()
+            except Exception:
+                raw_words = []
+
+            for w in raw_words:
+                x0 = float(w.get('x0', 0))
+                x1 = float(w.get('x1', x0))
+                top = float(w.get('top', 0))
+                bottom = float(w.get('bottom', top))
+                left = int(x0)
+                top_i = int(top)
+                width = int(x1 - x0)
+                height = int(bottom - top)
+                words.append({
+                    'text': w.get('text', ''),
+                    'left': left,
+                    'top': top_i,
+                    'width': width,
+                    'height': height,
+                    'conf': None,
+                })
+
+            pages.append({'page_number': i, 'text': text, 'words': words})
 
     return {'source': os.path.abspath(pdf_path), 'page_count': len(pages), 'pages': pages}
 
 
+
+
+
 def main(argv: List[str]):
-    parser = argparse.ArgumentParser(description='Extract text and word data from a PDF using OCR')
+    parser = argparse.ArgumentParser(description='Extract text and word data from a PDF (no OCR)')
     parser.add_argument('pdfs', nargs='+', help='One or more input PDF files (supports multiple paths)')
     parser.add_argument('-o', '--output', help='Output JSON file (used when not using --split)', default='extraction_output.json')
     parser.add_argument('--split', action='store_true', help='Write one JSON file per input PDF instead of a combined output')
-    parser.add_argument('--dpi', type=int, default=300, help='DPI for PDF to image conversion')
-    parser.add_argument('--poppler-path', default=os.environ.get('POPPLER_PATH'), help='Path to poppler utilities (optional)')
-    parser.add_argument('--lang', default='por', help='Tesseract language(s), e.g. "por" or "eng+por"')
+    parser.add_argument('--lang', default='por', help='Language hint (not used for text-extraction without OCR)')
 
     args = parser.parse_args(argv)
 
     missing = check_dependencies()
     if missing:
         print('Missing dependencies:', ', '.join(missing))
-        print('\nOn macOS you can install them with:')
-        print('  brew install tesseract poppler')
-        print('And in the venv:')
-        print('  pip install -r requirements.txt')
+        print('\nOn macOS you can install pdfplumber with:')
+        print('  pip install pdfplumber')
         sys.exit(2)
 
     results = []
@@ -147,7 +112,7 @@ def main(argv: List[str]):
             continue
 
         try:
-            result = extract_pdf(pdf_path, dpi=args.dpi, poppler_path=args.poppler_path, lang=args.lang)
+            result = extract_pdf_text_pdfplumber(pdf_path)
         except Exception as e:
             print('Error during extraction for', pdf_path, ':', e, file=sys.stderr)
             continue

@@ -5,7 +5,6 @@ Este repositório contém um script simples para extrair texto de um PDF usando 
 Requisitos do sistema (macOS):
 
 - tesseract: brew install tesseract
-- poppler (para converter PDF->imagem): brew install poppler
 
 Instalação do ambiente Python (assumindo virtualenv/venv):
 
@@ -25,10 +24,6 @@ Saída:
 
 - Um arquivo JSON com a estrutura: { source, page_count, pages: [{page_number, text, words:[{text,left,top,width,height,conf}]}] }
 
-Notas:
-
-- Se o Tesseract ou o Poppler não estiverem instalados, o script exibirá instruções rápidas.
-- Ajuste a linguagem do Tesseract com a opção --lang (por padrão 'por').
 
 Análise automática com a API da OpenAI
 -----------------------------------
