@@ -1,0 +1,352 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import io
+import os
+import time
+import uuid
+import tempfile
+from typing import Any, Dict, List, Optional, Tuple
+
+import pdfplumber
+import pytesseract
+from pdf2image import convert_from_bytes
+from fastapi import Body, FastAPI, File, HTTPException, UploadFile
+from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
+
+from docx import Document
+
+from analyze_with_openai import (
+    DEFAULT_MODEL,
+    FUNCTION_SCHEMA,
+    build_text_from_ocr,
+    call_openai_chat,
+    extract_from_response,
+    load_env,
+    merge_structured_field,
+    select_page_numbers_for_extraction,
+)
+from fill_template import prepare_replacements, process_document
+
+
+APP_ROOT = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR = os.path.join(APP_ROOT, "static")
+TEMPLATE_PATH = os.path.join(APP_ROOT, "template.docx")
+
+# armazenamento temporário em memória (token -> payload)
+_STORE: Dict[str, Dict[str, Any]] = {}
+_STORE_TTL_SECONDS = 60 * 30  # 30 minutos
+
+
+def _cleanup_store() -> None:
+    now = time.time()
+    expired = [k for k, v in _STORE.items() if (now - float(v.get("created_at", now))) > _STORE_TTL_SECONDS]
+    for k in expired:
+        _STORE.pop(k, None)
+
+
+def _configure_ocr() -> Dict[str, Optional[str]]:
+    """Configura Tesseract/Poppler via variáveis de ambiente (Windows-friendly).
+
+    - TESSERACT_CMD: caminho do tesseract.exe
+    - POPPLER_PATH: pasta do poppler/bin (para pdf2image)
+    """
+    tesseract_cmd = os.environ.get("TESSERACT_CMD")
+    if tesseract_cmd:
+        # pytesseract usa esse atributo para apontar para o executável
+        pytesseract.pytesseract.tesseract_cmd = tesseract_cmd
+    poppler_path = os.environ.get("POPPLER_PATH")
+    return {"tesseract_cmd": tesseract_cmd, "poppler_path": poppler_path}
+
+
+def _should_fallback_to_ocr(text: str, min_chars: int) -> bool:
+    # heurística simples: se o texto for muito curto, é provável que a página seja imagem/scan
+    return len((text or "").strip()) < min_chars
+
+
+def _ocr_page_from_pdf_bytes(
+    file_bytes: bytes,
+    page_number_1based: int,
+    lang: str,
+    dpi: int,
+    poppler_path: Optional[str],
+) -> str:
+    images = convert_from_bytes(
+        file_bytes,
+        dpi=dpi,
+        first_page=page_number_1based,
+        last_page=page_number_1based,
+        poppler_path=poppler_path,
+    )
+    if not images:
+        return ""
+    # config: PSM 6 costuma funcionar bem para páginas com blocos de texto
+    return pytesseract.image_to_string(images[0], lang=lang, config="--psm 6")
+
+
+def extract_pdf_hybrid_text(
+    file_bytes: bytes,
+    source_name: str,
+    *,
+    ocr_lang: str = "por",
+    ocr_min_chars: int = 30,
+    ocr_dpi: int = 300,
+) -> Dict[str, Any]:
+    """Extrai texto do PDF (pdfplumber) com fallback para OCR (Tesseract) por página."""
+    cfg = _configure_ocr()
+    pages: List[Dict[str, Any]] = []
+    with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
+        for i, page in enumerate(pdf.pages, start=1):
+            text = page.extract_text() or ""
+            method = "pdfplumber"
+            if _should_fallback_to_ocr(text, ocr_min_chars):
+                try:
+                    ocr_text = _ocr_page_from_pdf_bytes(
+                        file_bytes,
+                        page_number_1based=i,
+                        lang=ocr_lang,
+                        dpi=ocr_dpi,
+                        poppler_path=cfg.get("poppler_path"),
+                    )
+                    if ocr_text and len(ocr_text.strip()) >= len(text.strip()):
+                        text = ocr_text
+                        method = "ocr"
+                except Exception:
+                    # se OCR falhar, mantemos o texto original (mesmo que vazio)
+                    pass
+
+            # words não são usados no pipeline atual; manter vazio reduz payload/tempo
+            pages.append({"page_number": i, "text": text, "words": [], "method": method})
+    return {"source": source_name, "page_count": len(pages), "pages": pages}
+
+
+def _summarize_structured(structured: Dict[str, Any]) -> Dict[str, Any]:
+    """Gera um resumo “human-friendly” do JSON estruturado para o modal."""
+    def g(path: List[str]) -> Optional[Any]:
+        cur: Any = structured
+        for p in path:
+            if not isinstance(cur, dict):
+                return None
+            cur = cur.get(p)
+            if cur is None:
+                return None
+        return cur
+
+    return {
+        "qualificacao": {
+            "nome": g(["qualificacao_parte_autora", "nome"]),
+            "cpf": g(["qualificacao_parte_autora", "cpf"]),
+            "endereco": g(["qualificacao_parte_autora", "endereco_completo"]),
+            "representante_legal": g(["qualificacao_parte_autora", "representante_legal_nome"]),
+        },
+        "inss": {
+            "nb": g(["dados_requerimento_inss", "numero_beneficio_NB"]) or g(["dados_processuais", "numero_beneficio_NB_repetido"]),
+            "der": g(["dados_requerimento_inss", "DER_data_entrada_requerimento"]),
+        },
+        "laudo_principal": {
+            "deficiencia": g(["dados_medicos", "laudo_principal", "deficiencia_constatada"]),
+            "cid": g(["dados_medicos", "laudo_principal", "CID_da_doenca"]),
+            "data": g(["dados_medicos", "laudo_principal", "data_do_laudo"]),
+            "medico": g(["dados_medicos", "laudo_principal", "nome_do_medico"]),
+        },
+        "relatorio_escolar": {
+            "data_emissao": g(["dados_medicos", "relatorio_escolar", "data_emissao"]),
+            "primeiro_nome_autor": g(["dados_medicos", "relatorio_escolar", "primeiro_nome_do_autor"]),
+        },
+    }
+
+
+def analyze_extractions_with_openai(
+    extractions: List[Dict[str, Any]],
+    model: str,
+    pages_per_call: int,
+    delay_between_calls: float,
+    inss_max_pages: int,
+    inss_min_total_pages: int,
+) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+    """Roda a etapa de estruturação (OpenAI) por documento, retornando resultado + metadados por doc."""
+    system_msg = (
+        "Você é um assistente que analisa laudos e extrai campos jurídicos e médicos. "
+        "Retorne apenas JSON seguindo o schema de função. Se o dado não existir, retorne null. "
+        "Se houver baixa confiança, inclua o valor e marque '[confiança baixa]'."
+    )
+
+    structured_result: Dict[str, Any] = {}
+    per_doc: List[Dict[str, Any]] = []
+
+    for ex_idx, ex in enumerate(extractions, start=1):
+        source = ex.get("source") or f"documento_{ex_idx}"
+        page_numbers = select_page_numbers_for_extraction(
+            ex,
+            selected_pages=None,
+            inss_max_pages=inss_max_pages,
+            inss_min_total_pages=inss_min_total_pages,
+        )
+        per_doc.append(
+            {
+                "source": source,
+                "page_count": ex.get("page_count"),
+                "pages_analyzed": page_numbers,
+            }
+        )
+
+        if not page_numbers:
+            continue
+
+        chunks = [page_numbers] if pages_per_call <= 0 else [page_numbers[i : i + pages_per_call] for i in range(0, len(page_numbers), pages_per_call)]
+        for chunk_idx, chunk in enumerate(chunks):
+            chunk_text = build_text_from_ocr(ex, pages=chunk)
+            if not chunk_text.strip():
+                continue
+
+            user_msg = (
+                f"Documento fonte: {source}\n"
+                "Analise o texto a seguir e preencha os campos do schema. Retorne somente o JSON. "
+                "Texto:\n" + chunk_text
+            )
+
+            messages = [
+                {"role": "system", "content": system_msg},
+                {"role": "user", "content": user_msg},
+            ]
+
+            resp = call_openai_chat(model, messages, [FUNCTION_SCHEMA])
+            chunk_structured = extract_from_response(resp)
+            if not structured_result:
+                structured_result = chunk_structured
+            else:
+                merge_structured_field(structured_result, chunk_structured)
+
+            if (chunk_idx < len(chunks) - 1) and delay_between_calls > 0:
+                time.sleep(delay_between_calls)
+
+        if (ex_idx < len(extractions)) and delay_between_calls > 0:
+            time.sleep(delay_between_calls)
+
+    return structured_result, per_doc
+
+
+def generate_docx_from_structured(structured: Dict[str, Any], template_path: str) -> str:
+    """Gera um DOCX preenchido e retorna o caminho do arquivo gerado (temp)."""
+    replacements = prepare_replacements(structured)
+    if os.path.exists(template_path):
+        doc = Document(template_path)
+        process_document(doc, replacements)
+    else:
+        doc = Document()
+        doc.add_paragraph("Template não encontrado. Preencha/ajuste 'template.docx'.")
+        doc.add_paragraph("Campos detectados:")
+        for k, v in replacements.items():
+            doc.add_paragraph(f"[{k}] = {v}")
+
+    fd, out_path = tempfile.mkstemp(prefix="template_gerado_", suffix=".docx")
+    os.close(fd)
+    doc.save(out_path)
+    return out_path
+
+
+app = FastAPI(title="Extração de dados (PDF → JSON → DOCX)")
+
+if os.path.isdir(STATIC_DIR):
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+
+@app.on_event("startup")
+def _startup() -> None:
+    # carrega .env/.ENV se existir
+    load_env(None)
+
+
+@app.get("/", response_class=HTMLResponse)
+def index() -> str:
+    index_path = os.path.join(STATIC_DIR, "index.html")
+    if not os.path.exists(index_path):
+        raise HTTPException(status_code=500, detail="static/index.html não encontrado.")
+    with open(index_path, "r", encoding="utf-8") as f:
+        return f.read()
+
+
+@app.post("/api/extract")
+async def api_extract(
+    files: List[UploadFile] = File(...),
+    model: str = DEFAULT_MODEL,
+    pages_per_call: int = 0,
+    delay_between_calls: float = 0.0,
+    inss_max_pages: int = 6,
+    inss_min_total_pages: int = 20,
+    ocr_lang: str = "por",
+    ocr_min_chars: int = 30,
+    ocr_dpi: int = 300,
+) -> Dict[str, Any]:
+    _cleanup_store()
+
+    if len(files) != 4:
+        raise HTTPException(status_code=400, detail="Envie exatamente 4 arquivos PDF.")
+
+    extractions: List[Dict[str, Any]] = []
+    for f in files:
+        if not (f.filename or "").lower().endswith(".pdf"):
+            raise HTTPException(status_code=400, detail=f"Arquivo não é PDF: {f.filename}")
+        content = await f.read()
+        if not content:
+            raise HTTPException(status_code=400, detail=f"Arquivo vazio: {f.filename}")
+        extractions.append(
+            extract_pdf_hybrid_text(
+                content,
+                f.filename or "documento.pdf",
+                ocr_lang=ocr_lang,
+                ocr_min_chars=ocr_min_chars,
+                ocr_dpi=ocr_dpi,
+            )
+        )
+
+    try:
+        structured, per_doc = analyze_extractions_with_openai(
+            extractions=extractions,
+            model=model,
+            pages_per_call=pages_per_call,
+            delay_between_calls=delay_between_calls,
+            inss_max_pages=inss_max_pages,
+            inss_min_total_pages=inss_min_total_pages,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    if not structured:
+        raise HTTPException(status_code=500, detail="A API não retornou nenhum conteúdo estruturado.")
+
+    token = str(uuid.uuid4())
+    _STORE[token] = {"created_at": time.time(), "structured": structured}
+
+    return {
+        "token": token,
+        "per_document": per_doc,
+        "summary": _summarize_structured(structured),
+        "structured": structured,
+    }
+
+
+@app.post("/api/generate-docx")
+def api_generate_docx(payload: Dict[str, Any] = Body(...)) -> FileResponse:
+    _cleanup_store()
+    token = payload.get("token")
+    if not token or not isinstance(token, str):
+        raise HTTPException(status_code=400, detail="Campo obrigatório: token")
+    item = _STORE.get(token)
+    if not item:
+        raise HTTPException(status_code=404, detail="Token não encontrado ou expirado. Refaça a extração.")
+    structured = item.get("structured")
+    if not isinstance(structured, dict):
+        raise HTTPException(status_code=500, detail="Conteúdo estruturado inválido no servidor.")
+
+    out_path = generate_docx_from_structured(structured, TEMPLATE_PATH)
+    # opcional: invalidar token após uso (evita reuso)
+    _STORE.pop(token, None)
+
+    return FileResponse(
+        out_path,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        filename="template_gerado.docx",
+    )
+

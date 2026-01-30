@@ -1,0 +1,153 @@
+:root{
+  --bg:#0b1220;
+  --card:#111a2c;
+  --muted:#9fb0d0;
+  --text:#e7efff;
+  --accent:#5b8cff;
+  --danger:#ff5b6e;
+  --border:rgba(255,255,255,.08);
+  --shadow:0 18px 60px rgba(0,0,0,.45);
+  --radius:16px;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:var(--sans);
+  background: radial-gradient(1200px 500px at 10% 0%, rgba(91,140,255,.22), transparent 55%),
+              radial-gradient(900px 600px at 100% 10%, rgba(255,91,110,.14), transparent 60%),
+              var(--bg);
+  color:var(--text);
+}
+.container{
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 42px 20px 80px;
+}
+.header h1{
+  margin:0 0 10px;
+  font-size: 34px;
+  letter-spacing: -0.02em;
+}
+.header p{margin:0 0 22px;color:var(--muted)}
+.card{
+  background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px;
+  box-shadow: var(--shadow);
+}
+.label{display:block;margin-bottom:10px;color:var(--muted);font-weight:600}
+input[type="file"]{
+  width:100%;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px dashed rgba(255,255,255,.18);
+  background: rgba(0,0,0,.18);
+  color: var(--text);
+}
+.help{margin-top:10px;color:var(--muted);font-size:14px}
+.row{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.btn{
+  appearance:none;
+  border:1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  background: rgba(255,255,255,.05);
+  color: var(--text);
+  font-weight: 700;
+  cursor:pointer;
+}
+.btn:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.btn-primary{background: linear-gradient(180deg, rgba(91,140,255,.95), rgba(91,140,255,.75)); border-color: rgba(91,140,255,.55)}
+.btn-ghost{background: rgba(255,255,255,.03)}
+.status{margin-top:14px;min-height:22px;color:var(--muted)}
+.status.error{color:var(--danger)}
+.status.ok{color:#7ee787}
+
+.modal-backdrop{
+  position:fixed; inset:0;
+  background: rgba(0,0,0,.62);
+  display:flex; align-items:center; justify-content:center;
+  padding:18px;
+}
+.hidden{display:none}
+.modal{
+  width:min(920px, 100%);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow:hidden;
+}
+.modal-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:16px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.modal-header h2{margin:0;font-size:18px}
+.icon-btn{
+  border:1px solid var(--border);
+  background: rgba(255,255,255,.04);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 6px 10px;
+  cursor:pointer;
+}
+.modal-body{padding:16px 18px;max-height:70vh;overflow:auto}
+.modal-body h3{margin:12px 0 10px;font-size:15px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.modal-footer{
+  display:flex;gap:10px;justify-content:flex-end;
+  padding:14px 18px;
+  border-top:1px solid var(--border);
+  background: rgba(255,255,255,.02);
+}
+.pill-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.pill{
+  font-size:12px;
+  padding:6px 10px;
+  border:1px solid var(--border);
+  border-radius:999px;
+  color:var(--muted);
+  background: rgba(0,0,0,.14);
+}
+.summary{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (max-width: 760px){
+  .summary{grid-template-columns:1fr}
+}
+.block{
+  border:1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(0,0,0,.14);
+}
+.block-title{margin:0 0 10px;color:var(--muted);font-weight:800;font-size:13px}
+.kv{display:grid;grid-template-columns: 180px 1fr;gap:8px 10px;font-size:13px}
+@media (max-width: 760px){
+  .kv{grid-template-columns:1fr}
+}
+.k{color:var(--muted);font-family:var(--mono);font-size:12px}
+.v{color:var(--text)}
+.details{margin-top:12px;border:1px solid var(--border);border-radius: 14px;padding:10px;background: rgba(0,0,0,.12)}
+.details summary{cursor:pointer;color:var(--muted);font-weight:700}
+pre.json{
+  margin:10px 0 0;
+  padding:12px;
+  border-radius: 12px;
+  background: rgba(0,0,0,.18);
+  border:1px solid var(--border);
+  overflow:auto;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.45;
+}
+

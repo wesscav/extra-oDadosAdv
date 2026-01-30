@@ -39,6 +39,16 @@ from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_excep
 
 DEFAULT_MODEL = "gpt-4-0613"
 
+# Heurística para o "documento grande do INSS":
+# - se a página 1 contiver algum desses termos
+# - e o documento for "grande" (>= --inss-min-total-pages)
+# então limitamos a análise às primeiras --inss-max-pages páginas.
+INSS_KEYWORDS = [
+    "inss",
+    "instituto nacional",
+    "do seguro social",
+]
+
 
 FUNCTION_SCHEMA = {
     "name": "extrair_campos_laudo",
@@ -207,6 +217,61 @@ def chunk_page_numbers(pages: List[int], chunk_size: int) -> List[List[int]]:
     return [pages[i : i + chunk_size] for i in range(0, len(pages), chunk_size)]
 
 
+def _get_total_pages(ocr_like: Dict[str, Any]) -> int:
+    """Best-effort total pages for a single extraction object."""
+    pc = ocr_like.get("page_count")
+    if isinstance(pc, int) and pc > 0:
+        return pc
+    pages = ocr_like.get("pages")
+    if isinstance(pages, list):
+        return len(pages)
+    return 0
+
+
+def _get_page_text(ocr_like: Dict[str, Any], page_number: int) -> str:
+    """Fetch the text for a given page_number (best-effort)."""
+    for p in ocr_like.get("pages", []) or []:
+        if p.get("page_number") == page_number:
+            return (p.get("text") or "")
+    return ""
+
+
+def _contains_inss_keywords(text: str) -> bool:
+    t = (text or "").lower()
+    return any(k in t for k in INSS_KEYWORDS)
+
+
+def select_page_numbers_for_extraction(
+    ocr_like: Dict[str, Any],
+    selected_pages: Optional[List[int]],
+    inss_max_pages: int,
+    inss_min_total_pages: int,
+) -> List[int]:
+    """Select which pages to include for ONE document/extraction.
+
+    Precedence:
+    - if selected_pages is provided, use only those pages (intersection with available)
+    - else, apply INSS heuristic to limit pages for large INSS documents
+    - otherwise include all available pages
+    """
+    available = [p.get("page_number") for p in ocr_like.get("pages", []) if isinstance(p.get("page_number"), int)]
+    available = sorted(set(available))
+    if not available:
+        return []
+
+    if selected_pages:
+        return [pn for pn in selected_pages if pn in available]
+
+    total_pages = _get_total_pages(ocr_like)
+    if total_pages >= max(1, int(inss_min_total_pages)):
+        first_page_text = _get_page_text(ocr_like, 1)
+        if _contains_inss_keywords(first_page_text):
+            cap = max(1, int(inss_max_pages))
+            return [pn for pn in available if pn <= cap]
+
+    return available
+
+
 def merge_structured_field(target: Dict[str, Any], source: Dict[str, Any]) -> None:
     for key, source_value in source.items():
         target_value = target.get(key)
@@ -324,6 +389,21 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--dotenv", default=None, help="Path to .env or .ENV file to load OPENAI_API_KEY from")
     parser.add_argument("--pages", nargs="*", type=int, help="Optional list of page numbers to include (e.g. --pages 1 2)")
     parser.add_argument(
+        "--inss-max-pages",
+        type=int,
+        default=6,
+        help=(
+            "Quando a página 1 contiver palavras-chave do INSS e o documento for grande "
+            "(>= --inss-min-total-pages), limita a análise às primeiras N páginas (default: 6)."
+        ),
+    )
+    parser.add_argument(
+        "--inss-min-total-pages",
+        type=int,
+        default=20,
+        help="Mínimo de páginas para considerar o documento 'grande' na heurística do INSS (default: 20).",
+    )
+    parser.add_argument(
         "--pages-per-call",
         type=int,
         default=0,
@@ -343,23 +423,6 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(f"Input file not found: {args.input}", file=sys.stderr)
         return 2
 
-    ocr = read_ocr_json(args.input)
-    # normalize combined extraction files (those with key 'extractions') into a single OCR-like object
-    try:
-        ocr = normalize_input_to_ocr(ocr)
-    except Exception as e:
-        print(f"Failed to normalize input JSON: {e}", file=sys.stderr)
-        return 3
-    page_numbers = extract_page_numbers(ocr, args.pages)
-    if not page_numbers:
-        print("Nenhuma página foi encontrada nos dados OCR para os filtros fornecidos.", file=sys.stderr)
-        return 3
-
-    chunks = chunk_page_numbers(page_numbers, args.pages_per_call)
-    if not chunks:
-        print("Não há páginas válidas para processar.", file=sys.stderr)
-        return 3
-
     system_msg = (
         "Você é um assistente que analisa laudos e extrai campos jurídicos e médicos. "
         "Retorne apenas JSON seguindo o schema de função. Se o dado não existir, retorne null. "
@@ -367,35 +430,122 @@ def main(argv: Optional[List[str]] = None) -> int:
     )
 
     structured_result: Dict[str, Any] = {}
-    for idx, chunk in enumerate(chunks):
-        chunk_text = build_text_from_ocr(ocr, pages=chunk)
-        if not chunk_text.strip():
-            continue
+    ocr_raw = read_ocr_json(args.input)
 
-        user_msg = (
-            "Analise o texto a seguir e preencha os campos do schema. Retorne somente o JSON. "
-            "Texto:\n" + chunk_text
-        )
+    # Se for um JSON combinado (vários PDFs), processe cada extração separadamente
+    # para conseguir aplicar regras por documento (ex.: limitar páginas do INSS).
+    if isinstance(ocr_raw, dict) and isinstance(ocr_raw.get("extractions"), list):
+        extractions: List[Dict[str, Any]] = [ex for ex in ocr_raw.get("extractions", []) if isinstance(ex, dict)]
+        if not extractions:
+            print("Nenhuma extração válida foi encontrada em 'extractions'.", file=sys.stderr)
+            return 3
 
-        messages = [
-            {"role": "system", "content": system_msg},
-            {"role": "user", "content": user_msg},
-        ]
+        for ex_idx, ex in enumerate(extractions, start=1):
+            source = ex.get("source") or f"extraction_{ex_idx}"
+            page_numbers = select_page_numbers_for_extraction(
+                ex,
+                args.pages,
+                args.inss_max_pages,
+                args.inss_min_total_pages,
+            )
+            if not page_numbers:
+                continue
 
+            chunks = chunk_page_numbers(page_numbers, args.pages_per_call)
+            if not chunks:
+                continue
+
+            for chunk_idx, chunk in enumerate(chunks):
+                chunk_text = build_text_from_ocr(ex, pages=chunk)
+                if not chunk_text.strip():
+                    continue
+
+                user_msg = (
+                    f"Documento fonte: {source}\n"
+                    "Analise o texto a seguir e preencha os campos do schema. Retorne somente o JSON. "
+                    "Texto:\n" + chunk_text
+                )
+
+                messages = [
+                    {"role": "system", "content": system_msg},
+                    {"role": "user", "content": user_msg},
+                ]
+
+                try:
+                    resp = call_openai_chat(args.model, messages, [FUNCTION_SCHEMA])
+                    chunk_structured = extract_from_response(resp)
+                except Exception as e:
+                    print(
+                        f"Error calling OpenAI (document {ex_idx}/{len(extractions)}, chunk {chunk_idx + 1}/{len(chunks)}): {e}",
+                        file=sys.stderr,
+                    )
+                    return 1
+
+                if not structured_result:
+                    structured_result = chunk_structured
+                else:
+                    merge_structured_field(structured_result, chunk_structured)
+
+                if (chunk_idx < len(chunks) - 1) and args.delay_between_calls > 0:
+                    time.sleep(args.delay_between_calls)
+
+            # atraso também entre documentos (útil quando pages-per-call=0)
+            if (ex_idx < len(extractions)) and args.delay_between_calls > 0:
+                time.sleep(args.delay_between_calls)
+
+    else:
+        # Caso "single": mantém compatibilidade, mas ainda aplica a heurística do INSS.
+        ocr = ocr_raw
         try:
-            resp = call_openai_chat(args.model, messages, [FUNCTION_SCHEMA])
-            chunk_structured = extract_from_response(resp)
+            ocr = normalize_input_to_ocr(ocr)
         except Exception as e:
-            print(f"Error calling OpenAI (chunk {idx + 1}/{len(chunks)}): {e}", file=sys.stderr)
-            return 1
+            print(f"Failed to normalize input JSON: {e}", file=sys.stderr)
+            return 3
 
-        if not structured_result:
-            structured_result = chunk_structured
-        else:
-            merge_structured_field(structured_result, chunk_structured)
+        page_numbers = select_page_numbers_for_extraction(
+            ocr,
+            args.pages,
+            args.inss_max_pages,
+            args.inss_min_total_pages,
+        )
+        if not page_numbers:
+            print("Nenhuma página foi encontrada nos dados OCR para os filtros fornecidos.", file=sys.stderr)
+            return 3
 
-        if idx < len(chunks) - 1 and args.delay_between_calls > 0:
-            time.sleep(args.delay_between_calls)
+        chunks = chunk_page_numbers(page_numbers, args.pages_per_call)
+        if not chunks:
+            print("Não há páginas válidas para processar.", file=sys.stderr)
+            return 3
+
+        for chunk_idx, chunk in enumerate(chunks):
+            chunk_text = build_text_from_ocr(ocr, pages=chunk)
+            if not chunk_text.strip():
+                continue
+
+            user_msg = (
+                "Analise o texto a seguir e preencha os campos do schema. Retorne somente o JSON. "
+                "Texto:\n" + chunk_text
+            )
+
+            messages = [
+                {"role": "system", "content": system_msg},
+                {"role": "user", "content": user_msg},
+            ]
+
+            try:
+                resp = call_openai_chat(args.model, messages, [FUNCTION_SCHEMA])
+                chunk_structured = extract_from_response(resp)
+            except Exception as e:
+                print(f"Error calling OpenAI (chunk {chunk_idx + 1}/{len(chunks)}): {e}", file=sys.stderr)
+                return 1
+
+            if not structured_result:
+                structured_result = chunk_structured
+            else:
+                merge_structured_field(structured_result, chunk_structured)
+
+            if (chunk_idx < len(chunks) - 1) and args.delay_between_calls > 0:
+                time.sleep(args.delay_between_calls)
 
     if not structured_result:
         print("A API não retornou nenhum conteúdo estruturado.", file=sys.stderr)

@@ -2,9 +2,16 @@
 
 Este repositório contém um script simples para extrair texto de um PDF usando OCR (Tesseract).
 
-Requisitos do sistema (macOS):
+Requisitos do sistema (OCR - Tesseract):
 
-- tesseract: brew install tesseract
+macOS:
+- tesseract: `brew install tesseract`
+
+Windows:
+- Instale o **Tesseract OCR** e garanta que o `tesseract.exe` esteja no PATH, ou defina:
+  - `TESSERACT_CMD="C:\caminho\para\tesseract.exe"`
+- Para OCR em PDFs (converter página → imagem), instale o **Poppler** e defina:
+  - `POPPLER_PATH="C:\caminho\para\poppler\bin"`
 
 Instalação do ambiente Python (assumindo virtualenv/venv):
 
@@ -48,4 +55,32 @@ python analyze_with_openai.py extraction_output.json -o extraction_structured.js
 Observações:
 - Não comite a chave da API. Use variáveis de ambiente ou um arquivo `.env` que esteja no `.gitignore`.
 - Se o texto for muito grande, passe `--pages` para enviar apenas páginas específicas.
+
+Interface web (upload de 4 PDFs + confirmação + geração de DOCX)
+---------------------------------------------------------------
+
+Foi adicionado um servidor web simples que:
+- recebe **4 PDFs** por upload
+- faz a extração (pdfplumber com fallback OCR) + análise (OpenAI)
+- mostra um **modal de confirmação** com o resumo e o JSON estruturado
+- após confirmar, gera e baixa o **`.docx`** preenchido com o `template.docx`
+
+Requisitos:
+- Python 3
+- `OPENAI_API_KEY` no ambiente ou em `.env`
+
+Instalar dependências:
+
+```bash
+pip install -r requirements.txt
+```
+
+Rodar o servidor:
+
+```bash
+uvicorn server:app --reload
+```
+
+Abrir no navegador:
+- `http://127.0.0.1:8000/`
 

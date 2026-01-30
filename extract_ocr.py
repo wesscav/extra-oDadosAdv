@@ -34,16 +34,74 @@ try:
 except Exception:
     Image = None
 
+try:
+    import pytesseract
+except Exception:
+    pytesseract = None
+
+try:
+    from pdf2image import convert_from_path
+except Exception:
+    convert_from_path = None
+
 
 def check_dependencies() -> List[str]:
     missing = []
     if pdfplumber is None:
         missing.append('pdfplumber')
+    if pytesseract is None:
+        missing.append('pytesseract')
+    if convert_from_path is None:
+        missing.append('pdf2image')
     return missing
 
 
-def extract_pdf_text_pdfplumber(pdf_path: str) -> Dict[str, Any]:
-    """Extract text and word bboxes from a PDF using pdfplumber (no OCR).
+def _configure_ocr() -> Dict[str, Any]:
+    """Configura Tesseract/Poppler via variáveis de ambiente (Windows-friendly).
+
+    - TESSERACT_CMD: caminho do tesseract.exe
+    - POPPLER_PATH: pasta do poppler/bin (para pdf2image)
+    """
+    tesseract_cmd = os.environ.get("TESSERACT_CMD")
+    if tesseract_cmd and pytesseract is not None:
+        pytesseract.pytesseract.tesseract_cmd = tesseract_cmd
+    return {"tesseract_cmd": tesseract_cmd, "poppler_path": os.environ.get("POPPLER_PATH")}
+
+
+def _should_fallback_to_ocr(text: str, min_chars: int) -> bool:
+    return len((text or "").strip()) < min_chars
+
+
+def _ocr_page_from_pdf_path(
+    pdf_path: str,
+    page_number_1based: int,
+    *,
+    lang: str,
+    dpi: int,
+    poppler_path: str | None,
+) -> str:
+    if convert_from_path is None or pytesseract is None:
+        return ""
+    images = convert_from_path(
+        pdf_path,
+        dpi=dpi,
+        first_page=page_number_1based,
+        last_page=page_number_1based,
+        poppler_path=poppler_path,
+    )
+    if not images:
+        return ""
+    return pytesseract.image_to_string(images[0], lang=lang, config="--psm 6")
+
+
+def extract_pdf_text_hybrid(
+    pdf_path: str,
+    *,
+    ocr_lang: str = "por",
+    ocr_min_chars: int = 30,
+    ocr_dpi: int = 300,
+) -> Dict[str, Any]:
+    """Extrai texto do PDF com fallback para OCR por página.
 
     Returns same structure as the previous extract_pdf: {'source', 'page_count', 'pages'}
     Each page has 'page_number', 'text', and 'words' where each word has
@@ -52,6 +110,7 @@ def extract_pdf_text_pdfplumber(pdf_path: str) -> Dict[str, Any]:
     if pdfplumber is None:
         raise RuntimeError('pdfplumber is not available')
 
+    cfg = _configure_ocr()
     pages = []
     with pdfplumber.open(pdf_path) as pdf:
         for i, page in enumerate(pdf.pages, start=1):
@@ -81,7 +140,23 @@ def extract_pdf_text_pdfplumber(pdf_path: str) -> Dict[str, Any]:
                     'conf': None,
                 })
 
-            pages.append({'page_number': i, 'text': text, 'words': words})
+            method = "pdfplumber"
+            if _should_fallback_to_ocr(text, ocr_min_chars):
+                try:
+                    ocr_text = _ocr_page_from_pdf_path(
+                        pdf_path,
+                        i,
+                        lang=ocr_lang,
+                        dpi=ocr_dpi,
+                        poppler_path=cfg.get("poppler_path"),
+                    )
+                    if ocr_text and len(ocr_text.strip()) >= len(text.strip()):
+                        text = ocr_text
+                        method = "ocr"
+                except Exception:
+                    pass
+
+            pages.append({'page_number': i, 'text': text, 'words': words, 'method': method})
 
     return {'source': os.path.abspath(pdf_path), 'page_count': len(pages), 'pages': pages}
 
@@ -94,7 +169,9 @@ def main(argv: List[str]):
     parser.add_argument('pdfs', nargs='+', help='One or more input PDF files (supports multiple paths)')
     parser.add_argument('-o', '--output', help='Output JSON file (used when not using --split)', default='extraction_output.json')
     parser.add_argument('--split', action='store_true', help='Write one JSON file per input PDF instead of a combined output')
-    parser.add_argument('--lang', default='por', help='Language hint (not used for text-extraction without OCR)')
+    parser.add_argument('--lang', default='por', help='OCR language (Tesseract), default: por')
+    parser.add_argument('--ocr-min-chars', type=int, default=30, help='Se o texto extraído tiver menos que N caracteres, usa OCR (default: 30).')
+    parser.add_argument('--ocr-dpi', type=int, default=300, help='DPI para renderizar página antes do OCR (default: 300).')
 
     args = parser.parse_args(argv)
 
@@ -112,7 +189,12 @@ def main(argv: List[str]):
             continue
 
         try:
-            result = extract_pdf_text_pdfplumber(pdf_path)
+            result = extract_pdf_text_hybrid(
+                pdf_path,
+                ocr_lang=args.lang,
+                ocr_min_chars=args.ocr_min_chars,
+                ocr_dpi=args.ocr_dpi,
+            )
         except Exception as e:
             print('Error during extraction for', pdf_path, ':', e, file=sys.stderr)
             continue
