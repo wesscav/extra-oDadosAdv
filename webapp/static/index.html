@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>extra-oDadosAdv — Upload OCR</title>
+    <style>
+      :root {
+        --bg: #0b1220;
+        --panel: rgba(255, 255, 255, 0.06);
+        --panel2: rgba(255, 255, 255, 0.08);
+        --text: rgba(255, 255, 255, 0.92);
+        --muted: rgba(255, 255, 255, 0.68);
+        --border: rgba(255, 255, 255, 0.14);
+        --accent: #7c3aed;
+        --danger: #ef4444;
+        --ok: #22c55e;
+        --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+          "Courier New", monospace;
+        --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
+          "Apple Color Emoji", "Segoe UI Emoji";
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: var(--sans);
+        background: radial-gradient(1200px 600px at 10% 0%, rgba(124, 58, 237, 0.35), transparent 60%),
+          radial-gradient(1000px 600px at 100% 0%, rgba(59, 130, 246, 0.25), transparent 55%),
+          var(--bg);
+        color: var(--text);
+      }
+      .wrap {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 28px 18px 48px;
+      }
+      header {
+        display: flex;
+        gap: 14px;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-bottom: 18px;
+      }
+      h1 {
+        font-size: 18px;
+        margin: 0;
+        letter-spacing: 0.2px;
+      }
+      .sub {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+      @media (min-width: 860px) {
+        .grid {
+          grid-template-columns: 360px 1fr;
+          align-items: start;
+        }
+      }
+      .card {
+        background: linear-gradient(180deg, var(--panel), rgba(255, 255, 255, 0.03));
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 14px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+      }
+      label {
+        display: block;
+        font-size: 12px;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+      input[type="file"],
+      input[type="text"],
+      input[type="number"] {
+        width: 100%;
+        background: var(--panel2);
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-radius: 10px;
+        padding: 10px 10px;
+        outline: none;
+      }
+      input[type="file"] {
+        padding: 9px;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .btns {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+      }
+      button {
+        appearance: none;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(124, 58, 237, 0.9);
+        color: white;
+        border-radius: 12px;
+        padding: 10px 12px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      button.secondary {
+        background: rgba(255, 255, 255, 0.08);
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .status {
+        margin-top: 12px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.35;
+      }
+      .status.ok {
+        border-color: rgba(34, 197, 94, 0.35);
+        color: rgba(231, 255, 243, 0.9);
+      }
+      .status.err {
+        border-color: rgba(239, 68, 68, 0.45);
+        color: rgba(255, 235, 235, 0.92);
+      }
+      pre {
+        margin: 0;
+        padding: 12px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: rgba(0, 0, 0, 0.35);
+        overflow: auto;
+        max-height: 72vh;
+        font-family: var(--mono);
+        font-size: 12px;
+        line-height: 1.35;
+        white-space: pre;
+      }
+      .topline {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      .pill {
+        font-size: 12px;
+        color: var(--muted);
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.04);
+        padding: 6px 10px;
+        border-radius: 999px;
+      }
+      a {
+        color: rgba(167, 139, 250, 0.95);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div>
+          <h1>extra-oDadosAdv — Upload de PDFs (OCR)</h1>
+          <p class="sub">Envie 1+ PDFs, rode OCR e veja o JSON retornado.</p>
+        </div>
+        <div class="pill" id="healthPill">checando dependências…</div>
+      </header>
+
+      <div class="grid">
+        <section class="card">
+          <div style="margin-bottom: 10px">
+            <label for="files">Arquivos (PDF)</label>
+            <input id="files" type="file" accept="application/pdf,.pdf" multiple />
+          </div>
+
+          <div class="row" style="margin-bottom: 10px">
+            <div>
+              <label for="dpi">DPI</label>
+              <input id="dpi" type="number" min="72" max="600" step="1" value="300" />
+            </div>
+            <div>
+              <label for="lang">Idioma (Tesseract)</label>
+              <input id="lang" type="text" value="por" placeholder="por ou eng+por" />
+            </div>
+          </div>
+
+          <div style="margin-bottom: 10px">
+            <label for="poppler">POPPLER_PATH (opcional)</label>
+            <input id="poppler" type="text" placeholder="ex.: C:\\poppler\\Library\\bin" />
+          </div>
+
+          <div class="btns">
+            <button id="btnRun">Extrair OCR</button>
+            <button id="btnDownload" class="secondary" disabled>Baixar JSON</button>
+          </div>
+
+          <div id="status" class="status" style="display: none"></div>
+
+          <div class="status" style="margin-top: 10px">
+            Dica Windows: se falhar com Poppler/Tesseract, configure as variáveis
+            <span style="font-family: var(--mono)">POPPLER_PATH</span> e
+            <span style="font-family: var(--mono)">TESSERACT_CMD</span> no servidor.
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="topline">
+            <div class="pill">Resposta (JSON)</div>
+            <div class="pill"><a href="/api/health" target="_blank" rel="noreferrer">/api/health</a></div>
+          </div>
+          <pre id="output">{}</pre>
+        </section>
+      </div>
+    </div>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+
+      let lastJson = null;
+      let lastBlobUrl = null;
+
+      function setStatus(kind, msg) {
+        const el = $("status");
+        el.style.display = "block";
+        el.className = "status " + (kind || "");
+        el.textContent = msg;
+      }
+
+      function setHealth(ok, missing) {
+        const pill = $("healthPill");
+        if (ok) {
+          pill.textContent = "dependências OK";
+          pill.style.borderColor = "rgba(34, 197, 94, 0.35)";
+          pill.style.color = "rgba(231, 255, 243, 0.9)";
+        } else {
+          pill.textContent = "dependências ausentes";
+          pill.style.borderColor = "rgba(239, 68, 68, 0.45)";
+          pill.style.color = "rgba(255, 235, 235, 0.92)";
+          if (Array.isArray(missing) && missing.length) {
+            pill.title = "Faltando: " + missing.join(", ");
+          }
+        }
+      }
+
+      async function refreshHealth() {
+        try {
+          const r = await fetch("/api/health");
+          const j = await r.json();
+          setHealth(!!j.ok, j.missing);
+        } catch (e) {
+          const pill = $("healthPill");
+          pill.textContent = "sem conexão com o servidor";
+          pill.style.borderColor = "rgba(239, 68, 68, 0.45)";
+        }
+      }
+
+      function renderJson(obj) {
+        $("output").textContent = JSON.stringify(obj, null, 2);
+      }
+
+      function enableDownload() {
+        $("btnDownload").disabled = !lastJson;
+        if (!lastJson) return;
+
+        if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl);
+        const blob = new Blob([JSON.stringify(lastJson, null, 2)], { type: "application/json" });
+        lastBlobUrl = URL.createObjectURL(blob);
+      }
+
+      $("btnDownload").addEventListener("click", () => {
+        if (!lastJson || !lastBlobUrl) return;
+        const a = document.createElement("a");
+        a.href = lastBlobUrl;
+        a.download = "extraction_output.json";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      });
+
+      $("btnRun").addEventListener("click", async () => {
+        const files = $("files").files;
+        if (!files || files.length === 0) {
+          setStatus("err", "Selecione pelo menos 1 PDF.");
+          return;
+        }
+
+        const fd = new FormData();
+        for (const f of files) fd.append("files", f);
+        fd.append("dpi", String($("dpi").value || 300));
+        fd.append("lang", String($("lang").value || "por"));
+        const poppler = String($("poppler").value || "").trim();
+        if (poppler) fd.append("poppler_path", poppler);
+
+        $("btnRun").disabled = true;
+        $("btnDownload").disabled = true;
+        setStatus("", "Enviando arquivos e executando OCR… (isso pode demorar)");
+        renderJson({});
+
+        try {
+          const res = await fetch("/api/ocr", { method: "POST", body: fd });
+          const json = await res.json().catch(() => null);
+
+          if (!res.ok) {
+            setStatus("err", (json && (json.detail?.message || json.detail?.error)) || "Erro no servidor.");
+            renderJson(json || { error: "Falha ao ler resposta do servidor." });
+            lastJson = null;
+            enableDownload();
+            return;
+          }
+
+          lastJson = json;
+          renderJson(json);
+          setStatus("ok", "Concluído. JSON disponível abaixo.");
+          enableDownload();
+        } catch (e) {
+          setStatus("err", "Falha de conexão com o servidor.");
+          renderJson({ error: String(e) });
+          lastJson = null;
+          enableDownload();
+        } finally {
+          $("btnRun").disabled = false;
+          await refreshHealth();
+        }
+      });
+
+      refreshHealth();
+    </script>
+  </body>
+</html>
+

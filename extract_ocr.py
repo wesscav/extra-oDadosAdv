@@ -24,6 +24,7 @@ Notes:
 import argparse
 import json
 import os
+import platform
 import sys
 from typing import List, Dict, Any
 import re
@@ -36,6 +37,23 @@ except Exception as e:
 try:
     import pytesseract
     from pytesseract import Output
+
+    # 1. Verifica se existe uma variável de ambiente (prioridade máxima)
+    env_path = os.getenv('TESSERACT_CMD')
+    if env_path:
+        pytesseract.pytesseract.tesseract_cmd = env_path
+    # 2. Se não tem variável e estamos no Windows, usa o caminho padrão local
+    elif platform.system() == 'Windows':
+        default_paths = [
+            r'C:\Program Files\Tesseract-OCR\tesseract.exe',
+            r'C:\Program Files (x86)\Tesseract-OCR\tesseract.exe',
+            os.path.join(os.getenv('LOCALAPPDATA', ''), r'Tesseract-OCR\tesseract.exe')
+        ]
+        for path in default_paths:
+            if os.path.exists(path):
+                pytesseract.pytesseract.tesseract_cmd = path
+                break
+
 except Exception:
     pytesseract = None
     Output = None
@@ -100,22 +118,38 @@ def ocr_page(image: Image.Image, lang: str = 'por') -> Dict[str, Any]:
     return {'text': text, 'words': words}
 
 
-def extract_pdf(pdf_path: str, dpi: int = 300, poppler_path: str = None, lang: str = 'por') -> Dict[str, Any]:
-    """Extract OCR data for each page in the PDF."""
+def extract_pdf(pdf_path: str, dpi: int = 300, poppler_path: str = None, lang: str = 'por', 
+                first_page: int = None, last_page: int = None) -> Dict[str, Any]:
+    """Extract OCR data for each page in the PDF.
+    
+    Args:
+        pdf_path: Path to the PDF file
+        dpi: DPI for image conversion
+        poppler_path: Path to poppler binaries
+        lang: Tesseract language(s)
+        first_page: First page to process (1-indexed, inclusive)
+        last_page: Last page to process (1-indexed, inclusive)
+    """
     if convert_from_path is None:
         raise RuntimeError('pdf2image is not available')
 
     convert_kwargs = {'dpi': dpi}
     if poppler_path:
         convert_kwargs['poppler_path'] = poppler_path
+    if first_page:
+        convert_kwargs['first_page'] = first_page
+    if last_page:
+        convert_kwargs['last_page'] = last_page
 
     images = convert_from_path(pdf_path, **convert_kwargs)
 
     pages = []
+    page_offset = (first_page - 1) if first_page else 0
     for i, img in enumerate(images, start=1):
-        print(f'OCR page {i}/{len(images)}...')
+        actual_page_num = page_offset + i
+        print(f'OCR page {actual_page_num}/{last_page if last_page else "?"}...')
         page_data = ocr_page(img, lang=lang)
-        pages.append({'page_number': i, **page_data})
+        pages.append({'page_number': actual_page_num, **page_data})
 
     return {'source': os.path.abspath(pdf_path), 'page_count': len(pages), 'pages': pages}
 
@@ -128,6 +162,9 @@ def main(argv: List[str]):
     parser.add_argument('--dpi', type=int, default=300, help='DPI for PDF to image conversion')
     parser.add_argument('--poppler-path', default=os.environ.get('POPPLER_PATH'), help='Path to poppler utilities (optional)')
     parser.add_argument('--lang', default='por', help='Tesseract language(s), e.g. "por" or "eng+por"')
+    parser.add_argument('--first-page', type=int, help='First page to process (1-indexed)')
+    parser.add_argument('--last-page', type=int, help='Last page to process (1-indexed)')
+    parser.add_argument('--auto-detect-inss', action='store_true', help='Automatically detect INSS documents and process only first 6 pages')
 
     args = parser.parse_args(argv)
 
@@ -146,8 +183,54 @@ def main(argv: List[str]):
             print('PDF file not found:', pdf_path, file=sys.stderr)
             continue
 
+        first_page = args.first_page
+        last_page = args.last_page
+
+        # Auto-detect INSS documents
+        if args.auto_detect_inss and not last_page:
+            try:
+                print(f'Detectando tipo de documento em {pdf_path}...')
+                first_page_result = extract_pdf(
+                    pdf_path, 
+                    dpi=args.dpi, 
+                    poppler_path=args.poppler_path, 
+                    lang=args.lang,
+                    first_page=1,
+                    last_page=1
+                )
+                
+                if first_page_result['pages']:
+                    first_page_text = first_page_result['pages'][0]['text'].lower()
+                    
+                    inss_keywords = [
+                        'inss',
+                        'instituto nacional do seguro social',
+                        'instituto nacional de seguro social',
+                        'benefício previdenciário',
+                        'auxílio-doença',
+                        'perícia médica federal'
+                    ]
+                    
+                    is_inss = any(keyword in first_page_text for keyword in inss_keywords)
+                    
+                    if is_inss:
+                        print('Documento INSS detectado - processando apenas primeiras 6 paginas')
+                        first_page = 1
+                        last_page = 6
+                    else:
+                        print('Documento padrao - processando todas as paginas')
+            except Exception as e:
+                print(f'Aviso: Falha na deteccao automatica: {e}. Processando documento completo.', file=sys.stderr)
+
         try:
-            result = extract_pdf(pdf_path, dpi=args.dpi, poppler_path=args.poppler_path, lang=args.lang)
+            result = extract_pdf(
+                pdf_path, 
+                dpi=args.dpi, 
+                poppler_path=args.poppler_path, 
+                lang=args.lang,
+                first_page=first_page,
+                last_page=last_page
+            )
         except Exception as e:
             print('Error during extraction for', pdf_path, ':', e, file=sys.stderr)
             continue

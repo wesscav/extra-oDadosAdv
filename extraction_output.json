@@ -1,2944 +1,12 @@
 {
   "extractions": [
     {
-      "source": "/Users/viniciusibiapina/Desktop/extraction/XMALC-LAUDO MÉDICO 16.12.25.pdf",
+      "source": "C:\\Users\\wesle\\Horlando\\extra-oDadosAdv\\07.XEMRD-RELATORIO ESCOLAR 05.12.24.pdf",
       "page_count": 1,
       "pages": [
         {
           "page_number": 1,
-          "text": "Laudo médico\n\nPaciente: Miguel Ângelo Lima Clemente\n\nPaciente, para os devidos fins, apresenta quadro compatível com transtorno do espectro\nautista infantil, com início na primeira infância. Teve parto a termo, marcha aos 12 meses e\naquisição de fala após os 2 anos de idade. Houve desmame precoce aos 3 meses por enjoos\nfrequentes, além de relato de choro excessivo e gritos intensos no período neonatal.\n\nNo desenvolvimento comportamental e funcional, observa-se dificuldade importante de foco e\nmanutenção em atividades estruturadas, com prejuízo para desempenho em contextos\nocupacionais futuros. Apresenta brincadeiras disfuncionais, com uso repetitivo de tampinhas,\ncompreensão limitada de negativas e reação catastrófica frente a contrariedades. Há presença\nde maneirismos motores, como realização de piruetas, bem como hipersensibilidade ao toque\nfísico, especialmente no couro cabeludo, não permitindo lavar ou pentear os cabelos, o que\nimpacta diretamente as atividades de autocuidado e a rotina diária.\n\nO conjunto de achados descritos repercute de forma significativa na adaptação social, na\ntolerância a frustrações, na autonomia funcional e na previsibilidade comportamental. Em\nrelação às limitações e dificuldades futuras, há alta probabilidade de manutenção das\ndificuldades atualmente observadas, sem prognóstico de melhora funcional significativa no\ncurto e médio prazo, estimando-se persistência do quadro pelos próximos 2 anos, com\ndependência parcial de terceiros para organização da rotina e manejo comportamental.\n\nDo ponto de vista terapêutico, indica-se acompanhamento multiprofissional contínuo, com\nintervenções baseadas em terapia comportamental, terapia ocupacional com foco em integração\nsensorial e atividades de vida diária, fonoaudiologia voltada para linguagem funcional e\npragmática, além de suporte psicopedagógico para manejo de atenção, organização e adaptação\nàs demandas acadêmicas e futuras demandas laborais.\n\nCID-10: F84.0, F90.0\nAtenciosamente\n\nEmanuel Cavalcante Silva RQOE 9829\nPsiquiatra\n\nData: 16/12/2025\n\nAssinado e validado digitalmente por Emanuel Cavalcante Silva - CRM: 18396/CE para Miguel Ângelo Lima\nClemente - CPF: 110.941.543-50.\n\nAcesse o sistema emissor: https://app.tribemd.com/consulta-documentos/5B808FEB\n\nou escaneie o QR Code para verificar a validade e autenticidade do documento.\n\nPara verificar a autenticidade da assinatura no site (validar.iti.gov.br) e utilize o arquivo PDF\n\nIdentificação do emitente\n\nNome: Emanuel Cavalcante Silva\n\nCRM: 18396/CE RQE: 9829\n\nEndereço: Rua Monsenhor Bruno, 496, Apt 501, Meireles, 60115-190\nCidade: Fortaleza - CE\n\nTelefone: (85) 98206-0349\n\n- app.tribemd.com\n\nDocumento emitido pelo sistema TribeMD Assist v1.029\n",
-          "words": [
-            {
-              "text": "Laudo",
-              "left": 1012,
-              "top": 87,
-              "width": 176,
-              "height": 46,
-              "conf": 96
-            },
-            {
-              "text": "médico",
-              "left": 1216,
-              "top": 86,
-              "width": 209,
-              "height": 47,
-              "conf": 95
-            },
-            {
-              "text": "Paciente:",
-              "left": 72,
-              "top": 232,
-              "width": 188,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "Miguel",
-              "left": 279,
-              "top": 232,
-              "width": 131,
-              "height": 44,
-              "conf": 96
-            },
-            {
-              "text": "Ângelo",
-              "left": 427,
-              "top": 223,
-              "width": 143,
-              "height": 53,
-              "conf": 96
-            },
-            {
-              "text": "Lima",
-              "left": 587,
-              "top": 232,
-              "width": 98,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "Clemente",
-              "left": 701,
-              "top": 232,
-              "width": 195,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "Paciente,",
-              "left": 102,
-              "top": 384,
-              "width": 210,
-              "height": 33,
-              "conf": 96
-            },
-            {
-              "text": "para",
-              "left": 346,
-              "top": 392,
-              "width": 95,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "os",
-              "left": 469,
-              "top": 392,
-              "width": 43,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "devidos",
-              "left": 542,
-              "top": 384,
-              "width": 166,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "fins,",
-              "left": 740,
-              "top": 384,
-              "width": 110,
-              "height": 33,
-              "conf": 95
-            },
-            {
-              "text": "apresenta",
-              "left": 886,
-              "top": 387,
-              "width": 216,
-              "height": 32,
-              "conf": 96
-            },
-            {
-              "text": "quadro",
-              "left": 1130,
-              "top": 385,
-              "width": 144,
-              "height": 34,
-              "conf": 96
-            },
-            {
-              "text": "compatível",
-              "left": 1302,
-              "top": 384,
-              "width": 240,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "com",
-              "left": 1571,
-              "top": 392,
-              "width": 72,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "transtorno",
-              "left": 1669,
-              "top": 387,
-              "width": 242,
-              "height": 25,
-              "conf": 96
-            },
-            {
-              "text": "do",
-              "left": 1939,
-              "top": 385,
-              "width": 45,
-              "height": 27,
-              "conf": 95
-            },
-            {
-              "text": "espectro",
-              "left": 2012,
-              "top": 387,
-              "width": 193,
-              "height": 32,
-              "conf": 96
-            },
-            {
-              "text": "autista",
-              "left": 103,
-              "top": 436,
-              "width": 167,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "infantil,",
-              "left": 299,
-              "top": 436,
-              "width": 208,
-              "height": 33,
-              "conf": 95
-            },
-            {
-              "text": "com",
-              "left": 542,
-              "top": 444,
-              "width": 72,
-              "height": 20,
-              "conf": 95
-            },
-            {
-              "text": "início",
-              "left": 641,
-              "top": 436,
-              "width": 143,
-              "height": 28,
-              "conf": 95
-            },
-            {
-              "text": "na",
-              "left": 812,
-              "top": 444,
-              "width": 45,
-              "height": 20,
-              "conf": 95
-            },
-            {
-              "text": "primeira",
-              "left": 884,
-              "top": 436,
-              "width": 194,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "infância.",
-              "left": 1107,
-              "top": 436,
-              "width": 209,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "Teve",
-              "left": 1351,
-              "top": 439,
-              "width": 93,
-              "height": 25,
-              "conf": 95
-            },
-            {
-              "text": "parto",
-              "left": 1472,
-              "top": 439,
-              "width": 120,
-              "height": 32,
-              "conf": 96
-            },
-            {
-              "text": "a",
-              "left": 1621,
-              "top": 444,
-              "width": 20,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "termo,",
-              "left": 1669,
-              "top": 439,
-              "width": 137,
-              "height": 30,
-              "conf": 96
-            },
-            {
-              "text": "marcha",
-              "left": 1839,
-              "top": 437,
-              "width": 145,
-              "height": 27,
-              "conf": 95
-            },
-            {
-              "text": "aos",
-              "left": 2013,
-              "top": 444,
-              "width": 67,
-              "height": 20,
-              "conf": 95
-            },
-            {
-              "text": "12",
-              "left": 2113,
-              "top": 437,
-              "width": 40,
-              "height": 26,
-              "conf": 96
-            },
-            {
-              "text": "meses",
-              "left": 2182,
-              "top": 444,
-              "width": 119,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "e",
-              "left": 2331,
-              "top": 444,
-              "width": 20,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "aquisição",
-              "left": 103,
-              "top": 489,
-              "width": 216,
-              "height": 36,
-              "conf": 96
-            },
-            {
-              "text": "de",
-              "left": 347,
-              "top": 490,
-              "width": 44,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "fala",
-              "left": 422,
-              "top": 490,
-              "width": 92,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "após",
-              "left": 543,
-              "top": 489,
-              "width": 92,
-              "height": 35,
-              "conf": 95
-            },
-            {
-              "text": "os",
-              "left": 665,
-              "top": 497,
-              "width": 43,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "2",
-              "left": 739,
-              "top": 490,
-              "width": 17,
-              "height": 26,
-              "conf": 96
-            },
-            {
-              "text": "anos",
-              "left": 788,
-              "top": 497,
-              "width": 92,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "de",
-              "left": 910,
-              "top": 490,
-              "width": 44,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "idade.",
-              "left": 984,
-              "top": 489,
-              "width": 136,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "Houve",
-              "left": 1155,
-              "top": 492,
-              "width": 118,
-              "height": 25,
-              "conf": 96
-            },
-            {
-              "text": "desmame",
-              "left": 1302,
-              "top": 490,
-              "width": 167,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "precoce",
-              "left": 1497,
-              "top": 497,
-              "width": 168,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "aos",
-              "left": 1695,
-              "top": 497,
-              "width": 67,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "3",
-              "left": 1794,
-              "top": 490,
-              "width": 16,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "meses",
-              "left": 1839,
-              "top": 497,
-              "width": 119,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "por",
-              "left": 1987,
-              "top": 497,
-              "width": 71,
-              "height": 27,
-              "conf": 93
-            },
-            {
-              "text": "enjoos",
-              "left": 2086,
-              "top": 489,
-              "width": 141,
-              "height": 35,
-              "conf": 92
-            },
-            {
-              "text": "frequentes,",
-              "left": 104,
-              "top": 543,
-              "width": 257,
-              "height": 34,
-              "conf": 96
-            },
-            {
-              "text": "além",
-              "left": 397,
-              "top": 542,
-              "width": 95,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "de",
-              "left": 518,
-              "top": 543,
-              "width": 44,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "relato",
-              "left": 591,
-              "top": 543,
-              "width": 144,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "de",
-              "left": 763,
-              "top": 543,
-              "width": 44,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "choro",
-              "left": 836,
-              "top": 543,
-              "width": 119,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "excessivo",
-              "left": 983,
-              "top": 542,
-              "width": 217,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "e",
-              "left": 1228,
-              "top": 550,
-              "width": 20,
-              "height": 20,
-              "conf": 95
-            },
-            {
-              "text": "gritos",
-              "left": 1278,
-              "top": 542,
-              "width": 141,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "intensos",
-              "left": 1450,
-              "top": 542,
-              "width": 189,
-              "height": 28,
-              "conf": 95
-            },
-            {
-              "text": "no",
-              "left": 1669,
-              "top": 550,
-              "width": 46,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "período",
-              "left": 1742,
-              "top": 542,
-              "width": 169,
-              "height": 35,
-              "conf": 95
-            },
-            {
-              "text": "neonatal.",
-              "left": 1939,
-              "top": 543,
-              "width": 210,
-              "height": 27,
-              "conf": 94
-            },
-            {
-              "text": "No",
-              "left": 101,
-              "top": 650,
-              "width": 46,
-              "height": 25,
-              "conf": 96
-            },
-            {
-              "text": "desenvolvimento",
-              "left": 175,
-              "top": 647,
-              "width": 364,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "comportamental",
-              "left": 567,
-              "top": 648,
-              "width": 338,
-              "height": 34,
-              "conf": 95
-            },
-            {
-              "text": "e",
-              "left": 934,
-              "top": 655,
-              "width": 20,
-              "height": 20,
-              "conf": 95
-            },
-            {
-              "text": "funcional,",
-              "left": 985,
-              "top": 647,
-              "width": 233,
-              "height": 33,
-              "conf": 95
-            },
-            {
-              "text": "observa-se",
-              "left": 1253,
-              "top": 648,
-              "width": 240,
-              "height": 27,
-              "conf": 95
-            },
-            {
-              "text": "dificuldade",
-              "left": 1522,
-              "top": 647,
-              "width": 265,
-              "height": 28,
-              "conf": 95
-            },
-            {
-              "text": "importante",
-              "left": 1817,
-              "top": 647,
-              "width": 240,
-              "height": 35,
-              "conf": 95
-            },
-            {
-              "text": "de",
-              "left": 2086,
-              "top": 648,
-              "width": 44,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "foco",
-              "left": 2161,
-              "top": 648,
-              "width": 93,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "e",
-              "left": 2282,
-              "top": 655,
-              "width": 20,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "manutenção",
-              "left": 100,
-              "top": 701,
-              "width": 243,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "em",
-              "left": 371,
-              "top": 708,
-              "width": 48,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "atividades",
-              "left": 445,
-              "top": 700,
-              "width": 239,
-              "height": 28,
-              "conf": 95
-            },
-            {
-              "text": "estruturadas,",
-              "left": 714,
-              "top": 701,
-              "width": 308,
-              "height": 32,
-              "conf": 95
-            },
-            {
-              "text": "com",
-              "left": 1057,
-              "top": 708,
-              "width": 72,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "prejuízo",
-              "left": 1154,
-              "top": 700,
-              "width": 193,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "para",
-              "left": 1374,
-              "top": 708,
-              "width": 96,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "desempenho",
-              "left": 1498,
-              "top": 701,
-              "width": 241,
-              "height": 34,
-              "conf": 96
-            },
-            {
-              "text": "em",
-              "left": 1767,
-              "top": 708,
-              "width": 48,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "contextos",
-              "left": 1841,
-              "top": 703,
-              "width": 215,
-              "height": 25,
-              "conf": 96
-            },
-            {
-              "text": "ocupacionais",
-              "left": 102,
-              "top": 752,
-              "width": 288,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "futuros.",
-              "left": 422,
-              "top": 753,
-              "width": 183,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "Apresenta",
-              "left": 638,
-              "top": 755,
-              "width": 219,
-              "height": 32,
-              "conf": 96
-            },
-            {
-              "text": "brincadeiras",
-              "left": 884,
-              "top": 752,
-              "width": 290,
-              "height": 28,
-              "conf": 92
-            },
-            {
-              "text": "disfuncionais,",
-              "left": 1204,
-              "top": 752,
-              "width": 332,
-              "height": 33,
-              "conf": 92
-            },
-            {
-              "text": "com",
-              "left": 1571,
-              "top": 760,
-              "width": 72,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "uso",
-              "left": 1668,
-              "top": 760,
-              "width": 71,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "repetitivo",
-              "left": 1767,
-              "top": 752,
-              "width": 242,
-              "height": 35,
-              "conf": 95
-            },
-            {
-              "text": "de",
-              "left": 2037,
-              "top": 753,
-              "width": 44,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "tampinhas,",
-              "left": 2110,
-              "top": 752,
-              "width": 235,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "compreensão",
-              "left": 102,
-              "top": 806,
-              "width": 266,
-              "height": 34,
-              "conf": 96
-            },
-            {
-              "text": "limitada",
-              "left": 398,
-              "top": 805,
-              "width": 190,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "de",
-              "left": 616,
-              "top": 806,
-              "width": 44,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "negativas",
-              "left": 689,
-              "top": 805,
-              "width": 215,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "e",
-              "left": 934,
-              "top": 813,
-              "width": 20,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "reação",
-              "left": 983,
-              "top": 806,
-              "width": 144,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "catastrófica",
-              "left": 1155,
-              "top": 805,
-              "width": 290,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "frente",
-              "left": 1475,
-              "top": 806,
-              "width": 141,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "a",
-              "left": 1646,
-              "top": 813,
-              "width": 20,
-              "height": 20,
-              "conf": 93
-            },
-            {
-              "text": "contrariedades.",
-              "left": 1694,
-              "top": 805,
-              "width": 357,
-              "height": 28,
-              "conf": 91
-            },
-            {
-              "text": "Há",
-              "left": 2086,
-              "top": 805,
-              "width": 45,
-              "height": 28,
-              "conf": 95
-            },
-            {
-              "text": "presença",
-              "left": 2158,
-              "top": 813,
-              "width": 194,
-              "height": 28,
-              "conf": 95
-            },
-            {
-              "text": "de",
-              "left": 102,
-              "top": 859,
-              "width": 44,
-              "height": 27,
-              "conf": 93
-            },
-            {
-              "text": "maneirismos",
-              "left": 173,
-              "top": 858,
-              "width": 266,
-              "height": 28,
-              "conf": 92
-            },
-            {
-              "text": "motores,",
-              "left": 467,
-              "top": 861,
-              "width": 187,
-              "height": 30,
-              "conf": 96
-            },
-            {
-              "text": "como",
-              "left": 689,
-              "top": 866,
-              "width": 95,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "realização",
-              "left": 812,
-              "top": 858,
-              "width": 241,
-              "height": 36,
-              "conf": 95
-            },
-            {
-              "text": "de",
-              "left": 1081,
-              "top": 859,
-              "width": 45,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "piruetas,",
-              "left": 1154,
-              "top": 858,
-              "width": 211,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "bem",
-              "left": 1399,
-              "top": 859,
-              "width": 73,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "como",
-              "left": 1498,
-              "top": 866,
-              "width": 94,
-              "height": 20,
-              "conf": 93
-            },
-            {
-              "text": "hipersensibilidade",
-              "left": 1620,
-              "top": 858,
-              "width": 437,
-              "height": 35,
-              "conf": 90
-            },
-            {
-              "text": "ao",
-              "left": 2087,
-              "top": 866,
-              "width": 44,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "toque",
-              "left": 2159,
-              "top": 861,
-              "width": 118,
-              "height": 32,
-              "conf": 96
-            },
-            {
-              "text": "físico,",
-              "left": 104,
-              "top": 910,
-              "width": 159,
-              "height": 33,
-              "conf": 95
-            },
-            {
-              "text": "especialmente",
-              "left": 298,
-              "top": 910,
-              "width": 313,
-              "height": 35,
-              "conf": 95
-            },
-            {
-              "text": "no",
-              "left": 640,
-              "top": 918,
-              "width": 46,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "couro",
-              "left": 714,
-              "top": 918,
-              "width": 119,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "cabeludo,",
-              "left": 861,
-              "top": 911,
-              "width": 210,
-              "height": 32,
-              "conf": 96
-            },
-            {
-              "text": "não",
-              "left": 1106,
-              "top": 911,
-              "width": 70,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "permitindo",
-              "left": 1203,
-              "top": 910,
-              "width": 242,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "lavar",
-              "left": 1475,
-              "top": 911,
-              "width": 117,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "ou",
-              "left": 1620,
-              "top": 918,
-              "width": 46,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "pentear",
-              "left": 1693,
-              "top": 913,
-              "width": 169,
-              "height": 32,
-              "conf": 96
-            },
-            {
-              "text": "os",
-              "left": 1890,
-              "top": 918,
-              "width": 43,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "cabelos,",
-              "left": 1963,
-              "top": 911,
-              "width": 186,
-              "height": 32,
-              "conf": 95
-            },
-            {
-              "text": "o",
-              "left": 2184,
-              "top": 918,
-              "width": 21,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "que",
-              "left": 2233,
-              "top": 918,
-              "width": 69,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "impacta",
-              "left": 103,
-              "top": 963,
-              "width": 167,
-              "height": 35,
-              "conf": 91
-            },
-            {
-              "text": "diretamente",
-              "left": 298,
-              "top": 963,
-              "width": 264,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "as",
-              "left": 592,
-              "top": 971,
-              "width": 43,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "atividades",
-              "left": 666,
-              "top": 963,
-              "width": 238,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "de",
-              "left": 934,
-              "top": 964,
-              "width": 45,
-              "height": 27,
-              "conf": 93
-            },
-            {
-              "text": "autocuidado",
-              "left": 1009,
-              "top": 963,
-              "width": 265,
-              "height": 28,
-              "conf": 90
-            },
-            {
-              "text": "e",
-              "left": 1302,
-              "top": 971,
-              "width": 20,
-              "height": 20,
-              "conf": 95
-            },
-            {
-              "text": "a",
-              "left": 1352,
-              "top": 971,
-              "width": 20,
-              "height": 20,
-              "conf": 95
-            },
-            {
-              "text": "rotina",
-              "left": 1400,
-              "top": 963,
-              "width": 143,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "diária.",
-              "left": 1571,
-              "top": 963,
-              "width": 161,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "O",
-              "left": 101,
-              "top": 1071,
-              "width": 22,
-              "height": 25,
-              "conf": 96
-            },
-            {
-              "text": "conjunto",
-              "left": 151,
-              "top": 1068,
-              "width": 192,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "de",
-              "left": 371,
-              "top": 1069,
-              "width": 45,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "achados",
-              "left": 445,
-              "top": 1069,
-              "width": 165,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "descritos",
-              "left": 640,
-              "top": 1068,
-              "width": 215,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "repercute",
-              "left": 885,
-              "top": 1071,
-              "width": 216,
-              "height": 32,
-              "conf": 96
-            },
-            {
-              "text": "de",
-              "left": 1130,
-              "top": 1069,
-              "width": 45,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "forma",
-              "left": 1206,
-              "top": 1069,
-              "width": 117,
-              "height": 27,
-              "conf": 95
-            },
-            {
-              "text": "significativa",
-              "left": 1352,
-              "top": 1068,
-              "width": 314,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "na",
-              "left": 1694,
-              "top": 1076,
-              "width": 45,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "adaptação",
-              "left": 1768,
-              "top": 1069,
-              "width": 216,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "social,",
-              "left": 2013,
-              "top": 1068,
-              "width": 160,
-              "height": 33,
-              "conf": 95
-            },
-            {
-              "text": "na",
-              "left": 2208,
-              "top": 1076,
-              "width": 46,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "tolerância",
-              "left": 102,
-              "top": 1121,
-              "width": 241,
-              "height": 28,
-              "conf": 95
-            },
-            {
-              "text": "a",
-              "left": 372,
-              "top": 1129,
-              "width": 20,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "frustrações,",
-              "left": 422,
-              "top": 1122,
-              "width": 281,
-              "height": 35,
-              "conf": 95
-            },
-            {
-              "text": "na",
-              "left": 738,
-              "top": 1129,
-              "width": 46,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "autonomia",
-              "left": 813,
-              "top": 1121,
-              "width": 216,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "funcional",
-              "left": 1059,
-              "top": 1121,
-              "width": 214,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "e",
-              "left": 1302,
-              "top": 1129,
-              "width": 20,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "na",
-              "left": 1351,
-              "top": 1129,
-              "width": 45,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "previsibilidade",
-              "left": 1423,
-              "top": 1121,
-              "width": 364,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "comportamental.",
-              "left": 1816,
-              "top": 1122,
-              "width": 357,
-              "height": 34,
-              "conf": 95
-            },
-            {
-              "text": "Em",
-              "left": 2207,
-              "top": 1124,
-              "width": 49,
-              "height": 24,
-              "conf": 96
-            },
-            {
-              "text": "relação",
-              "left": 102,
-              "top": 1175,
-              "width": 168,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "às",
-              "left": 299,
-              "top": 1173,
-              "width": 42,
-              "height": 29,
-              "conf": 96
-            },
-            {
-              "text": "limitações",
-              "left": 373,
-              "top": 1174,
-              "width": 237,
-              "height": 36,
-              "conf": 96
-            },
-            {
-              "text": "e",
-              "left": 640,
-              "top": 1182,
-              "width": 20,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "dificuldades",
-              "left": 689,
-              "top": 1174,
-              "width": 289,
-              "height": 28,
-              "conf": 95
-            },
-            {
-              "text": "futuras,",
-              "left": 1010,
-              "top": 1175,
-              "width": 183,
-              "height": 32,
-              "conf": 95
-            },
-            {
-              "text": "há",
-              "left": 1228,
-              "top": 1174,
-              "width": 46,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "alta",
-              "left": 1303,
-              "top": 1175,
-              "width": 93,
-              "height": 27,
-              "conf": 95
-            },
-            {
-              "text": "probabilidade",
-              "left": 1423,
-              "top": 1174,
-              "width": 315,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "de",
-              "left": 1767,
-              "top": 1175,
-              "width": 45,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "manutenção",
-              "left": 1839,
-              "top": 1175,
-              "width": 243,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "das",
-              "left": 2110,
-              "top": 1175,
-              "width": 68,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "dificuldades",
-              "left": 102,
-              "top": 1227,
-              "width": 288,
-              "height": 28,
-              "conf": 95
-            },
-            {
-              "text": "atualmente",
-              "left": 421,
-              "top": 1228,
-              "width": 239,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "observadas,",
-              "left": 689,
-              "top": 1228,
-              "width": 259,
-              "height": 32,
-              "conf": 96
-            },
-            {
-              "text": "sem",
-              "left": 984,
-              "top": 1235,
-              "width": 71,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "prognóstico",
-              "left": 1080,
-              "top": 1227,
-              "width": 267,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "de",
-              "left": 1375,
-              "top": 1228,
-              "width": 45,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "melhora",
-              "left": 1447,
-              "top": 1228,
-              "width": 170,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "funcional",
-              "left": 1647,
-              "top": 1227,
-              "width": 214,
-              "height": 28,
-              "conf": 95
-            },
-            {
-              "text": "significativa",
-              "left": 1891,
-              "top": 1227,
-              "width": 314,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "no",
-              "left": 2233,
-              "top": 1235,
-              "width": 45,
-              "height": 20,
-              "conf": 95
-            },
-            {
-              "text": "curto",
-              "left": 102,
-              "top": 1282,
-              "width": 119,
-              "height": 25,
-              "conf": 96
-            },
-            {
-              "text": "e",
-              "left": 249,
-              "top": 1287,
-              "width": 20,
-              "height": 20,
-              "conf": 95
-            },
-            {
-              "text": "médio",
-              "left": 296,
-              "top": 1279,
-              "width": 121,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "prazo,",
-              "left": 443,
-              "top": 1287,
-              "width": 138,
-              "height": 27,
-              "conf": 93
-            },
-            {
-              "text": "estimando-se",
-              "left": 616,
-              "top": 1279,
-              "width": 289,
-              "height": 28,
-              "conf": 91
-            },
-            {
-              "text": "persistência",
-              "left": 933,
-              "top": 1279,
-              "width": 292,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "do",
-              "left": 1253,
-              "top": 1280,
-              "width": 45,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "quadro",
-              "left": 1326,
-              "top": 1280,
-              "width": 144,
-              "height": 34,
-              "conf": 96
-            },
-            {
-              "text": "pelos",
-              "left": 1497,
-              "top": 1280,
-              "width": 118,
-              "height": 34,
-              "conf": 96
-            },
-            {
-              "text": "próximos",
-              "left": 1644,
-              "top": 1279,
-              "width": 191,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "2",
-              "left": 1866,
-              "top": 1280,
-              "width": 17,
-              "height": 26,
-              "conf": 96
-            },
-            {
-              "text": "anos,",
-              "left": 1915,
-              "top": 1287,
-              "width": 111,
-              "height": 25,
-              "conf": 95
-            },
-            {
-              "text": "com",
-              "left": 2061,
-              "top": 1287,
-              "width": 72,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "dependência",
-              "left": 102,
-              "top": 1332,
-              "width": 266,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "parcial",
-              "left": 395,
-              "top": 1332,
-              "width": 167,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "de",
-              "left": 591,
-              "top": 1333,
-              "width": 45,
-              "height": 27,
-              "conf": 95
-            },
-            {
-              "text": "terceiros",
-              "left": 665,
-              "top": 1332,
-              "width": 215,
-              "height": 28,
-              "conf": 95
-            },
-            {
-              "text": "para",
-              "left": 909,
-              "top": 1340,
-              "width": 95,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "organização",
-              "left": 1032,
-              "top": 1332,
-              "width": 266,
-              "height": 36,
-              "conf": 96
-            },
-            {
-              "text": "da",
-              "left": 1326,
-              "top": 1333,
-              "width": 46,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "rotina",
-              "left": 1400,
-              "top": 1332,
-              "width": 143,
-              "height": 28,
-              "conf": 95
-            },
-            {
-              "text": "e",
-              "left": 1571,
-              "top": 1340,
-              "width": 20,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "manejo",
-              "left": 1618,
-              "top": 1332,
-              "width": 146,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "comportamental.",
-              "left": 1792,
-              "top": 1333,
-              "width": 357,
-              "height": 34,
-              "conf": 96
-            },
-            {
-              "text": "Do",
-              "left": 102,
-              "top": 1440,
-              "width": 45,
-              "height": 25,
-              "conf": 96
-            },
-            {
-              "text": "ponto",
-              "left": 174,
-              "top": 1440,
-              "width": 120,
-              "height": 32,
-              "conf": 96
-            },
-            {
-              "text": "de",
-              "left": 322,
-              "top": 1438,
-              "width": 45,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "vista",
-              "left": 395,
-              "top": 1437,
-              "width": 119,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "terapêutico,",
-              "left": 542,
-              "top": 1437,
-              "width": 284,
-              "height": 35,
-              "conf": 92
-            },
-            {
-              "text": "indica-se",
-              "left": 862,
-              "top": 1437,
-              "width": 215,
-              "height": 28,
-              "conf": 90
-            },
-            {
-              "text": "acompanhamento",
-              "left": 1107,
-              "top": 1438,
-              "width": 338,
-              "height": 34,
-              "conf": 93
-            },
-            {
-              "text": "multiprofissional",
-              "left": 1471,
-              "top": 1437,
-              "width": 414,
-              "height": 35,
-              "conf": 89
-            },
-            {
-              "text": "contínuo,",
-              "left": 1914,
-              "top": 1437,
-              "width": 210,
-              "height": 33,
-              "conf": 96
-            },
-            {
-              "text": "com",
-              "left": 2159,
-              "top": 1445,
-              "width": 72,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "intervenções",
-              "left": 103,
-              "top": 1490,
-              "width": 287,
-              "height": 36,
-              "conf": 96
-            },
-            {
-              "text": "baseadas",
-              "left": 419,
-              "top": 1491,
-              "width": 191,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "em",
-              "left": 640,
-              "top": 1498,
-              "width": 48,
-              "height": 20,
-              "conf": 95
-            },
-            {
-              "text": "terapia",
-              "left": 714,
-              "top": 1490,
-              "width": 168,
-              "height": 35,
-              "conf": 95
-            },
-            {
-              "text": "comportamental,",
-              "left": 910,
-              "top": 1491,
-              "width": 357,
-              "height": 34,
-              "conf": 96
-            },
-            {
-              "text": "terapia",
-              "left": 1302,
-              "top": 1490,
-              "width": 168,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "ocupacional",
-              "left": 1498,
-              "top": 1490,
-              "width": 265,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "com",
-              "left": 1792,
-              "top": 1498,
-              "width": 72,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "foco",
-              "left": 1892,
-              "top": 1491,
-              "width": 92,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "em",
-              "left": 2012,
-              "top": 1498,
-              "width": 48,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "integração",
-              "left": 2087,
-              "top": 1490,
-              "width": 240,
-              "height": 36,
-              "conf": 96
-            },
-            {
-              "text": "sensorial",
-              "left": 103,
-              "top": 1543,
-              "width": 215,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "e",
-              "left": 347,
-              "top": 1551,
-              "width": 20,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "atividades",
-              "left": 397,
-              "top": 1543,
-              "width": 238,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "de",
-              "left": 665,
-              "top": 1544,
-              "width": 44,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "vida",
-              "left": 737,
-              "top": 1543,
-              "width": 96,
-              "height": 28,
-              "conf": 95
-            },
-            {
-              "text": "diária,",
-              "left": 861,
-              "top": 1543,
-              "width": 161,
-              "height": 33,
-              "conf": 95
-            },
-            {
-              "text": "fonoaudiologia",
-              "left": 1059,
-              "top": 1543,
-              "width": 337,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "voltada",
-              "left": 1423,
-              "top": 1544,
-              "width": 169,
-              "height": 27,
-              "conf": 95
-            },
-            {
-              "text": "para",
-              "left": 1619,
-              "top": 1551,
-              "width": 96,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "linguagem",
-              "left": 1745,
-              "top": 1543,
-              "width": 217,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "funcional",
-              "left": 1990,
-              "top": 1543,
-              "width": 214,
-              "height": 28,
-              "conf": 95
-            },
-            {
-              "text": "e",
-              "left": 2233,
-              "top": 1551,
-              "width": 20,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "pragmática,",
-              "left": 101,
-              "top": 1595,
-              "width": 260,
-              "height": 35,
-              "conf": 95
-            },
-            {
-              "text": "além",
-              "left": 397,
-              "top": 1595,
-              "width": 95,
-              "height": 28,
-              "conf": 95
-            },
-            {
-              "text": "de",
-              "left": 518,
-              "top": 1596,
-              "width": 44,
-              "height": 27,
-              "conf": 95
-            },
-            {
-              "text": "suporte",
-              "left": 592,
-              "top": 1598,
-              "width": 166,
-              "height": 32,
-              "conf": 93
-            },
-            {
-              "text": "psicopedagógico",
-              "left": 786,
-              "top": 1595,
-              "width": 365,
-              "height": 35,
-              "conf": 91
-            },
-            {
-              "text": "para",
-              "left": 1178,
-              "top": 1603,
-              "width": 96,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "manejo",
-              "left": 1300,
-              "top": 1595,
-              "width": 145,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "de",
-              "left": 1473,
-              "top": 1596,
-              "width": 45,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "atenção,",
-              "left": 1548,
-              "top": 1596,
-              "width": 184,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "organização",
-              "left": 1767,
-              "top": 1595,
-              "width": 266,
-              "height": 36,
-              "conf": 95
-            },
-            {
-              "text": "e",
-              "left": 2061,
-              "top": 1603,
-              "width": 20,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "adaptação",
-              "left": 2111,
-              "top": 1596,
-              "width": 216,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "às",
-              "left": 103,
-              "top": 1647,
-              "width": 42,
-              "height": 29,
-              "conf": 96
-            },
-            {
-              "text": "demandas",
-              "left": 175,
-              "top": 1649,
-              "width": 191,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "acadêmicas",
-              "left": 397,
-              "top": 1648,
-              "width": 238,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "e",
-              "left": 665,
-              "top": 1656,
-              "width": 20,
-              "height": 20,
-              "conf": 96
-            },
-            {
-              "text": "futuras",
-              "left": 716,
-              "top": 1649,
-              "width": 164,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "demandas",
-              "left": 910,
-              "top": 1649,
-              "width": 190,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "laborais.",
-              "left": 1132,
-              "top": 1648,
-              "width": 208,
-              "height": 28,
-              "conf": 94
-            },
-            {
-              "text": "CID-10:",
-              "left": 102,
-              "top": 1754,
-              "width": 161,
-              "height": 27,
-              "conf": 90
-            },
-            {
-              "text": "F84.0,",
-              "left": 298,
-              "top": 1754,
-              "width": 136,
-              "height": 32,
-              "conf": 90
-            },
-            {
-              "text": "F90.0",
-              "left": 469,
-              "top": 1754,
-              "width": 116,
-              "height": 27,
-              "conf": 91
-            },
-            {
-              "text": "Atenciosamente",
-              "left": 100,
-              "top": 1806,
-              "width": 340,
-              "height": 28,
-              "conf": 95
-            },
-            {
-              "text": "Emanuel",
-              "left": 101,
-              "top": 1860,
-              "width": 168,
-              "height": 27,
-              "conf": 95
-            },
-            {
-              "text": "Cavalcante",
-              "left": 298,
-              "top": 1860,
-              "width": 240,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "Silva",
-              "left": 568,
-              "top": 1859,
-              "width": 118,
-              "height": 28,
-              "conf": 93
-            },
-            {
-              "text": "RQOE",
-              "left": 713,
-              "top": 1862,
-              "width": 70,
-              "height": 29,
-              "conf": 45
-            },
-            {
-              "text": "9829",
-              "left": 814,
-              "top": 1860,
-              "width": 89,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "Psiquiatra",
-              "left": 102,
-              "top": 1911,
-              "width": 241,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "Data:",
-              "left": 129,
-              "top": 2505,
-              "width": 104,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "16/12/2025",
-              "left": 253,
-              "top": 2505,
-              "width": 228,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "Assinado",
-              "left": 85,
-              "top": 2613,
-              "width": 164,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "e",
-              "left": 255,
-              "top": 2602,
-              "width": 18,
-              "height": 51,
-              "conf": 96
-            },
-            {
-              "text": "validado",
-              "left": 294,
-              "top": 2613,
-              "width": 149,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "digitalmente",
-              "left": 458,
-              "top": 2613,
-              "width": 218,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "por",
-              "left": 690,
-              "top": 2620,
-              "width": 52,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "Emanuel",
-              "left": 756,
-              "top": 2613,
-              "width": 142,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "Cavalcante",
-              "left": 913,
-              "top": 2612,
-              "width": 184,
-              "height": 29,
-              "conf": 96
-            },
-            {
-              "text": "Silva",
-              "left": 1111,
-              "top": 2612,
-              "width": 79,
-              "height": 29,
-              "conf": 93
-            },
-            {
-              "text": "-",
-              "left": 1202,
-              "top": 2628,
-              "width": 10,
-              "height": 3,
-              "conf": 92
-            },
-            {
-              "text": "CRM:",
-              "left": 1226,
-              "top": 2612,
-              "width": 91,
-              "height": 29,
-              "conf": 93
-            },
-            {
-              "text": "18396/CE",
-              "left": 1333,
-              "top": 2612,
-              "width": 162,
-              "height": 29,
-              "conf": 92
-            },
-            {
-              "text": "para",
-              "left": 1509,
-              "top": 2620,
-              "width": 72,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "Miguel",
-              "left": 1596,
-              "top": 2613,
-              "width": 105,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "Ângelo",
-              "left": 1715,
-              "top": 2606,
-              "width": 113,
-              "height": 42,
-              "conf": 96
-            },
-            {
-              "text": "Lima",
-              "left": 1844,
-              "top": 2613,
-              "width": 77,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "Clemente",
-              "left": 86,
-              "top": 2658,
-              "width": 557,
-              "height": 29,
-              "conf": 93
-            },
-            {
-              "text": "-",
-              "left": 254,
-              "top": 2654,
-              "width": 19,
-              "height": 44,
-              "conf": 93
-            },
-            {
-              "text": "CPF:",
-              "left": 291,
-              "top": 2654,
-              "width": 70,
-              "height": 44,
-              "conf": 92
-            },
-            {
-              "text": "110.941.543-50.",
-              "left": 379,
-              "top": 2658,
-              "width": 264,
-              "height": 29,
-              "conf": 90
-            },
-            {
-              "text": "Acesse",
-              "left": 85,
-              "top": 2705,
-              "width": 120,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "o",
-              "left": 218,
-              "top": 2712,
-              "width": 18,
-              "height": 21,
-              "conf": 93
-            },
-            {
-              "text": "sistema",
-              "left": 250,
-              "top": 2705,
-              "width": 127,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "emissor:",
-              "left": 389,
-              "top": 2705,
-              "width": 138,
-              "height": 28,
-              "conf": 93
-            },
-            {
-              "text": "https://app.tribemd.com/consulta-documentos/5B808FEB",
-              "left": 542,
-              "top": 2705,
-              "width": 1018,
-              "height": 35,
-              "conf": 31
-            },
-            {
-              "text": "ou",
-              "left": 85,
-              "top": 2758,
-              "width": 38,
-              "height": 21,
-              "conf": 93
-            },
-            {
-              "text": "escaneie",
-              "left": 137,
-              "top": 2751,
-              "width": 147,
-              "height": 28,
-              "conf": 90
-            },
-            {
-              "text": "o",
-              "left": 297,
-              "top": 2758,
-              "width": 18,
-              "height": 21,
-              "conf": 93
-            },
-            {
-              "text": "QR",
-              "left": 329,
-              "top": 2750,
-              "width": 54,
-              "height": 30,
-              "conf": 93
-            },
-            {
-              "text": "Code",
-              "left": 396,
-              "top": 2750,
-              "width": 90,
-              "height": 29,
-              "conf": 96
-            },
-            {
-              "text": "para",
-              "left": 501,
-              "top": 2758,
-              "width": 72,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "verificar",
-              "left": 584,
-              "top": 2751,
-              "width": 131,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "a",
-              "left": 727,
-              "top": 2758,
-              "width": 19,
-              "height": 21,
-              "conf": 96
-            },
-            {
-              "text": "validade",
-              "left": 757,
-              "top": 2751,
-              "width": 138,
-              "height": 28,
-              "conf": 94
-            },
-            {
-              "text": "e",
-              "left": 908,
-              "top": 2758,
-              "width": 18,
-              "height": 21,
-              "conf": 96
-            },
-            {
-              "text": "autenticidade",
-              "left": 939,
-              "top": 2751,
-              "width": 221,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "do",
-              "left": 1173,
-              "top": 2751,
-              "width": 39,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "documento.",
-              "left": 1225,
-              "top": 2751,
-              "width": 192,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "Para",
-              "left": 87,
-              "top": 2797,
-              "width": 75,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "verificar",
-              "left": 174,
-              "top": 2797,
-              "width": 130,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "a",
-              "left": 316,
-              "top": 2804,
-              "width": 19,
-              "height": 21,
-              "conf": 96
-            },
-            {
-              "text": "autenticidade",
-              "left": 347,
-              "top": 2797,
-              "width": 221,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "da",
-              "left": 581,
-              "top": 2797,
-              "width": 40,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "assinatura",
-              "left": 633,
-              "top": 2797,
-              "width": 171,
-              "height": 28,
-              "conf": 96
-            },
-            {
-              "text": "no",
-              "left": 817,
-              "top": 2804,
-              "width": 38,
-              "height": 21,
-              "conf": 96
-            },
-            {
-              "text": "site",
-              "left": 869,
-              "top": 2797,
-              "width": 55,
-              "height": 28,
-              "conf": 93
-            },
-            {
-              "text": "(validar.iti.gov.br)",
-              "left": 938,
-              "top": 2797,
-              "width": 283,
-              "height": 35,
-              "conf": 89
-            },
-            {
-              "text": "e",
-              "left": 1235,
-              "top": 2804,
-              "width": 18,
-              "height": 21,
-              "conf": 96
-            },
-            {
-              "text": "utilize",
-              "left": 1268,
-              "top": 2797,
-              "width": 100,
-              "height": 28,
-              "conf": 0
-            },
-            {
-              "text": "o",
-              "left": 1381,
-              "top": 2804,
-              "width": 18,
-              "height": 21,
-              "conf": 96
-            },
-            {
-              "text": "arquivo",
-              "left": 1412,
-              "top": 2797,
-              "width": 121,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "PDF",
-              "left": 1548,
-              "top": 2797,
-              "width": 71,
-              "height": 27,
-              "conf": 96
-            },
-            {
-              "text": "Identificação",
-              "left": 953,
-              "top": 2947,
-              "width": 255,
-              "height": 45,
-              "conf": 95
-            },
-            {
-              "text": "do",
-              "left": 1224,
-              "top": 2947,
-              "width": 49,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "emitente",
-              "left": 1290,
-              "top": 2947,
-              "width": 175,
-              "height": 35,
-              "conf": 95
-            },
-            {
-              "text": "Nome:",
-              "left": 93,
-              "top": 3046,
-              "width": 117,
-              "height": 31,
-              "conf": 96
-            },
-            {
-              "text": "Emanuel",
-              "left": 228,
-              "top": 3046,
-              "width": 159,
-              "height": 31,
-              "conf": 96
-            },
-            {
-              "text": "Cavalcante",
-              "left": 402,
-              "top": 3045,
-              "width": 205,
-              "height": 32,
-              "conf": 96
-            },
-            {
-              "text": "Silva",
-              "left": 622,
-              "top": 3045,
-              "width": 88,
-              "height": 32,
-              "conf": 96
-            },
-            {
-              "text": "CRM:",
-              "left": 92,
-              "top": 3102,
-              "width": 102,
-              "height": 32,
-              "conf": 92
-            },
-            {
-              "text": "18396/CE",
-              "left": 212,
-              "top": 3102,
-              "width": 180,
-              "height": 32,
-              "conf": 91
-            },
-            {
-              "text": "RQE:",
-              "left": 409,
-              "top": 3102,
-              "width": 95,
-              "height": 33,
-              "conf": 91
-            },
-            {
-              "text": "9829",
-              "left": 520,
-              "top": 3104,
-              "width": 89,
-              "height": 30,
-              "conf": 96
-            },
-            {
-              "text": "Endereço:",
-              "left": 94,
-              "top": 3160,
-              "width": 183,
-              "height": 39,
-              "conf": 96
-            },
-            {
-              "text": "Rua",
-              "left": 296,
-              "top": 3160,
-              "width": 71,
-              "height": 31,
-              "conf": 95
-            },
-            {
-              "text": "Monsenhor",
-              "left": 383,
-              "top": 3160,
-              "width": 204,
-              "height": 31,
-              "conf": 96
-            },
-            {
-              "text": "Bruno,",
-              "left": 603,
-              "top": 3160,
-              "width": 116,
-              "height": 36,
-              "conf": 96
-            },
-            {
-              "text": "496,",
-              "left": 735,
-              "top": 3161,
-              "width": 76,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "Apt",
-              "left": 828,
-              "top": 3160,
-              "width": 61,
-              "height": 39,
-              "conf": 96
-            },
-            {
-              "text": "501,",
-              "left": 902,
-              "top": 3161,
-              "width": 76,
-              "height": 35,
-              "conf": 96
-            },
-            {
-              "text": "Meireles,",
-              "left": 996,
-              "top": 3160,
-              "width": 163,
-              "height": 36,
-              "conf": 96
-            },
-            {
-              "text": "60115-190",
-              "left": 1176,
-              "top": 3161,
-              "width": 195,
-              "height": 30,
-              "conf": 96
-            },
-            {
-              "text": "Cidade:",
-              "left": 92,
-              "top": 3216,
-              "width": 139,
-              "height": 32,
-              "conf": 95
-            },
-            {
-              "text": "Fortaleza",
-              "left": 249,
-              "top": 3217,
-              "width": 169,
-              "height": 31,
-              "conf": 93
-            },
-            {
-              "text": "-",
-              "left": 433,
-              "top": 3233,
-              "width": 10,
-              "height": 4,
-              "conf": 92
-            },
-            {
-              "text": "CE",
-              "left": 458,
-              "top": 3216,
-              "width": 54,
-              "height": 32,
-              "conf": 96
-            },
-            {
-              "text": "Telefone:",
-              "left": 91,
-              "top": 3274,
-              "width": 170,
-              "height": 31,
-              "conf": 96
-            },
-            {
-              "text": "(85)",
-              "left": 278,
-              "top": 3274,
-              "width": 69,
-              "height": 39,
-              "conf": 93
-            },
-            {
-              "text": "98206-0349",
-              "left": 362,
-              "top": 3275,
-              "width": 219,
-              "height": 30,
-              "conf": 91
-            },
-            {
-              "text": "-",
-              "left": 2407,
-              "top": 1558,
-              "width": 2,
-              "height": 7,
-              "conf": 91
-            },
-            {
-              "text": "app.tribemd.com",
-              "left": 2395,
-              "top": 1269,
-              "width": 27,
-              "height": 266,
-              "conf": 90
-            },
-            {
-              "text": "Documento",
-              "left": 2395,
-              "top": 2349,
-              "width": 22,
-              "height": 175,
-              "conf": 96
-            },
-            {
-              "text": "emitido",
-              "left": 2395,
-              "top": 2212,
-              "width": 22,
-              "height": 115,
-              "conf": 96
-            },
-            {
-              "text": "pelo",
-              "left": 2395,
-              "top": 2126,
-              "width": 27,
-              "height": 63,
-              "conf": 96
-            },
-            {
-              "text": "sistema",
-              "left": 2395,
-              "top": 1982,
-              "width": 22,
-              "height": 122,
-              "conf": 93
-            },
-            {
-              "text": "TribeMD",
-              "left": 2395,
-              "top": 1829,
-              "width": 22,
-              "height": 133,
-              "conf": 92
-            },
-            {
-              "text": "Assist",
-              "left": 2395,
-              "top": 1713,
-              "width": 22,
-              "height": 94,
-              "conf": 93
-            },
-            {
-              "text": "v1.029",
-              "left": 2396,
-              "top": 1587,
-              "width": 21,
-              "height": 105,
-              "conf": 91
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "source": "/Users/viniciusibiapina/Desktop/extraction/07.XEMRD-RELATORIO ESCOLAR 05.12.24.pdf",
-      "page_count": 1,
-      "pages": [
-        {
-          "page_number": 1,
-          "text": "EMEIF. HUMBERTO VIEIRA PESSOA\n\n“Promovendo a qualidade do ensino.”\nINEP: 23267607 — CNPJ: 11.089.920/0001-44\n\nEste relatório visa fornecer informações detalhadas sobre o aluno EVERTON\nMATHEUS ROCHA DAVI, com foco nas suas necessidades especiais e no impacto delas em seu\ndesempenho escolar. O objetivo é fornecer um panorama claro, visando ajustes e apoios necessários\npara otimizar o processo de aprendizagem do aluno, fornecendo uma visão geral do comportamento\ndo aluno no ambiente escolar, com foco em aspectos observáveis durante as aulas. As informações\naqui descritas são baseadas em observações realizadas em sala de aula e visam auxiliar na\ncompreensão do contexto emocional e comportamental do aluno, possibilitando a melhor\nabordagem nas intervenções.\n\nEVERTON é um aluno com boa frequência escolar e acompanhamento familiar. E um aluno que\nnão consegue acompanhar a turma, tendo dificuldade em todas as disciplinas, chegando a ficar\ninseguro, nervoso e com crises fortes de ansiedade. EVERTON é bastante tímido, disperso e muito\ncalado. Durante muito tempo a família vem tentando de diversas formas, para que o mesmo se\ndesenvolva, mas isso não tem tido resultados e tem causado algumas frustrações que acaba\ndesencadeando outros problemas.\n\nInteração com Colegas e Professores:\n\nPor ser uma criança tímida, reservada e muito calado, se comunica pouquíssimo. Isso dificulta sua\naprendizagem.\n\nDurante os momentos de maior desafio, como por exemplo: provas, mudança de rotina, interações\nsociais, o aluno tende a agitar-se, ficar ansioso, demonstrar irritação.\n\nRecomenda-se que o acompanhamento psicológico leve em consideração aspectos que devem ser\nexplorados, como a ansiedade em atividades escolares, dificuldades de concentração.\n\nObservações Finais:\n\nEste relatório será útil para acompanhar a evolução do comportamento do aluno ao longo do tempo,\ncom o objetivo de adaptar o plano de intervenção conforme as necessidades observadas. O aluno acima\ncitado apresenta sintomas de defcite de atenção, compativel com TDH e investigação para outros. O\naluno precisa de acompanhamento com outros profissionais.\n\nO relatório resume a situação atual do aluno EVERTON, e visa proporcionar informações úteis. É\nfundamental que as medidas de apoio continuem a ser adaptadas conforme necessário para promover\no desenvolvimento acadêmico e pessoal do aluno. X\n\nKgzla-Maria Herculano Oliveira\n\nCoordenadora Pedagogica\n\nParaipaba, 05 de dezembro de 2024.\n\n",
+          "text": "EMEIF. HUMBERTO VIEIRA PESSOA\n\n“Promovendo a qualidade do ensino.”\nINEP: 23267607 — CNPJ: 11.089.920/000 1-44\n\nEste relatório visa fornecer informações detalhadas sobre o aluno EVERTON\nMATHEUS ROCHA DAVI, com foco nas suas necessidades especiais e no impacto delas em seu\ndesempenho escolar. O objetivo é fornecer um panorama claro, visando ajustes e apoios necessários\npara otimizar o processo de aprendizagem do aluno, fornecendo uma visão geral do comportamento\ndo aluno no ambiente escolar, com foco em aspectos observáveis durante as aulas. As informações\naqui descritas são baseadas em observações realizadas em sala de aula e visam auxiliar na\ncompreensão do contexto emocional e comportamental do aluno, possibilitando a melhor\nabordagem nas intervenções.\n\nEVERTON é um aluno com boa frequência escolar e acompanhamento familiar. E um aluno que\nnão consegue acompanhar a turma, tendo dificuldade em todas as disciplinas, chegando a ficar\ninseguro, nervoso e com crises fortes de ansiedade. EVERTON é bastante tímido, disperso e muito\ncalado. Durante muito tempo a família vem tentando de diversas formas, para que o mesmo se\ndesenvolva, mas isso não tem tido resultados e tem causado algumas frustrações que acaba\ndesencadeando outros problemas.\n\nInteração com Colegas e Professores:\n\nPor ser uma criança tímida, reservada e muito calado, se comunica pouquíssimo. Isso dificulta sua\naprendizagem.\n\nDurante os momentos de maior desafio, como por exemplo: provas, mudança de rotina, interações\nsociais, o aluno tende a agitar-se, ficar ansioso, demonstrar irritação.\n\nRecomenda-se que o acompanhamento psicológico leve em consideração aspectos que devem ser\nexplorados, como a ansiedade em atividades escolares, dificuldades de concentração.\n\nObservações Finais:\n\nEste relatório será útil para acompanhar a evolução do comportamento do aluno ao longo do tempo,\ncom o objetivo de adaptar o plano de intervenção conforme as necessidades observadas. O aluno acima\ncitado apresenta sintomas de defcite de atenção, compativel com TDH e investigação para outros. O\naluno precisa de acompanhamento com outros profissionais.\n\nO relatório resume a situação atual do aluno EVERTON, e visa proporcionar informações úteis. É\nfundamental que as medidas de apoio continuem a ser adaptadas conforme necessário para promover\no desenvolvimento acadêmico e pessoal do aluno. k\n\nKssle-Maária Herculano Oliveira\n\nCoordenadora Pedagogica\n\nParaipaba, 05 de dezembro de 2024.\n\n",
           "words": [
             {
               "text": "EMEIF.",
@@ -2946,7 +14,7 @@
               "top": 510,
               "width": 215,
               "height": 45,
-              "conf": 91
+              "conf": 89
             },
             {
               "text": "HUMBERTO",
@@ -2954,7 +22,7 @@
               "top": 510,
               "width": 377,
               "height": 45,
-              "conf": 96
+              "conf": 89
             },
             {
               "text": "VIEIRA",
@@ -2962,7 +30,7 @@
               "top": 510,
               "width": 232,
               "height": 45,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "PESSOA",
@@ -2970,7 +38,7 @@
               "top": 510,
               "width": 246,
               "height": 47,
-              "conf": 95
+              "conf": 91
             },
             {
               "text": "“Promovendo",
@@ -2978,7 +46,7 @@
               "top": 584,
               "width": 255,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "a",
@@ -2986,7 +54,7 @@
               "top": 595,
               "width": 20,
               "height": 23,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "qualidade",
@@ -2994,7 +62,7 @@
               "top": 584,
               "width": 178,
               "height": 43,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "do",
@@ -3002,7 +70,7 @@
               "top": 584,
               "width": 44,
               "height": 35,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "ensino.”",
@@ -3010,7 +78,7 @@
               "top": 584,
               "width": 151,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "INEP:",
@@ -3018,7 +86,7 @@
               "top": 641,
               "width": 104,
               "height": 29,
-              "conf": 95
+              "conf": 86
             },
             {
               "text": "23267607",
@@ -3026,7 +94,7 @@
               "top": 641,
               "width": 160,
               "height": 29,
-              "conf": 91
+              "conf": 96
             },
             {
               "text": "—",
@@ -3034,23 +102,31 @@
               "top": 657,
               "width": 23,
               "height": 4,
-              "conf": 91
+              "conf": 92
             },
             {
               "text": "CNPJ:",
               "left": 1203,
               "top": 641,
-              "width": 102,
+              "width": 113,
               "height": 29,
-              "conf": 92
+              "conf": 89
             },
             {
-              "text": "11.089.920/0001-44",
+              "text": "11.089.920/000",
               "left": 1335,
               "top": 640,
               "width": 319,
               "height": 38,
-              "conf": 91
+              "conf": 89
+            },
+            {
+              "text": "1-44",
+              "left": 1585,
+              "top": 636,
+              "width": 73,
+              "height": 46,
+              "conf": 89
             },
             {
               "text": "Este",
@@ -3058,7 +134,7 @@
               "top": 755,
               "width": 82,
               "height": 34,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "relatório",
@@ -3066,7 +142,7 @@
               "top": 753,
               "width": 157,
               "height": 36,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "visa",
@@ -3074,7 +150,7 @@
               "top": 753,
               "width": 77,
               "height": 35,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "fornecer",
@@ -3082,7 +158,7 @@
               "top": 753,
               "width": 160,
               "height": 35,
-              "conf": 68
+              "conf": 91
             },
             {
               "text": "informações",
@@ -3090,7 +166,7 @@
               "top": 752,
               "width": 237,
               "height": 43,
-              "conf": 95
+              "conf": 92
             },
             {
               "text": "detalhadas",
@@ -3098,7 +174,7 @@
               "top": 752,
               "width": 202,
               "height": 36,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "sobre",
@@ -3106,7 +182,7 @@
               "top": 753,
               "width": 101,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "o",
@@ -3114,7 +190,7 @@
               "top": 765,
               "width": 22,
               "height": 23,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "aluno",
@@ -3122,7 +198,7 @@
               "top": 754,
               "width": 105,
               "height": 36,
-              "conf": 93
+              "conf": 92
             },
             {
               "text": "EVERTON",
@@ -3130,7 +206,7 @@
               "top": 755,
               "width": 220,
               "height": 35,
-              "conf": 93
+              "conf": 91
             },
             {
               "text": "MATHEUS",
@@ -3138,7 +214,7 @@
               "top": 809,
               "width": 227,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "ROCHA",
@@ -3146,7 +222,7 @@
               "top": 809,
               "width": 166,
               "height": 34,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "DAVI,",
@@ -3154,7 +230,7 @@
               "top": 809,
               "width": 122,
               "height": 41,
-              "conf": 95
+              "conf": 84
             },
             {
               "text": "com",
@@ -3162,7 +238,7 @@
               "top": 819,
               "width": 81,
               "height": 24,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "foco",
@@ -3170,7 +246,7 @@
               "top": 807,
               "width": 82,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "nas",
@@ -3178,7 +254,7 @@
               "top": 818,
               "width": 63,
               "height": 24,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "suas",
@@ -3186,7 +262,7 @@
               "top": 818,
               "width": 81,
               "height": 25,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "necessidades",
@@ -3194,7 +270,7 @@
               "top": 807,
               "width": 249,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "especiais",
@@ -3202,7 +278,7 @@
               "top": 808,
               "width": 171,
               "height": 44,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "e",
@@ -3210,7 +286,7 @@
               "top": 818,
               "width": 19,
               "height": 25,
-              "conf": 95
+              "conf": 93
             },
             {
               "text": "no",
@@ -3218,7 +294,7 @@
               "top": 819,
               "width": 46,
               "height": 24,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "impacto",
@@ -3226,7 +302,7 @@
               "top": 808,
               "width": 152,
               "height": 45,
-              "conf": 96
+              "conf": 90
             },
             {
               "text": "delas",
@@ -3234,7 +310,7 @@
               "top": 808,
               "width": 98,
               "height": 36,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "em",
@@ -3242,7 +318,7 @@
               "top": 820,
               "width": 58,
               "height": 24,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "seu",
@@ -3250,7 +326,7 @@
               "top": 820,
               "width": 62,
               "height": 25,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "desempenho",
@@ -3258,7 +334,7 @@
               "top": 862,
               "width": 241,
               "height": 45,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "escolar.",
@@ -3266,7 +342,7 @@
               "top": 862,
               "width": 140,
               "height": 35,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "O",
@@ -3274,7 +350,7 @@
               "top": 863,
               "width": 32,
               "height": 35,
-              "conf": 96
+              "conf": 80
             },
             {
               "text": "objetivo",
@@ -3282,7 +358,7 @@
               "top": 862,
               "width": 155,
               "height": 45,
-              "conf": 96
+              "conf": 90
             },
             {
               "text": "é",
@@ -3290,7 +366,7 @@
               "top": 862,
               "width": 19,
               "height": 35,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "fornecer",
@@ -3298,7 +374,7 @@
               "top": 862,
               "width": 160,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "um",
@@ -3306,7 +382,7 @@
               "top": 872,
               "width": 62,
               "height": 24,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "panorama",
@@ -3314,7 +390,7 @@
               "top": 872,
               "width": 192,
               "height": 34,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "claro,",
@@ -3322,7 +398,7 @@
               "top": 861,
               "width": 106,
               "height": 42,
-              "conf": 97
+              "conf": 90
             },
             {
               "text": "visando",
@@ -3330,7 +406,7 @@
               "top": 861,
               "width": 148,
               "height": 36,
-              "conf": 95
+              "conf": 91
             },
             {
               "text": "ajustes",
@@ -3338,7 +414,7 @@
               "top": 862,
               "width": 126,
               "height": 44,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "e",
@@ -3346,7 +422,7 @@
               "top": 873,
               "width": 19,
               "height": 24,
-              "conf": 95
+              "conf": 93
             },
             {
               "text": "apoios",
@@ -3354,7 +430,7 @@
               "top": 862,
               "width": 125,
               "height": 45,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "necessários",
@@ -3362,7 +438,7 @@
               "top": 863,
               "width": 221,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "para",
@@ -3370,7 +446,7 @@
               "top": 928,
               "width": 86,
               "height": 34,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "otimizar",
@@ -3378,7 +454,7 @@
               "top": 916,
               "width": 162,
               "height": 35,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "o",
@@ -3386,7 +462,7 @@
               "top": 927,
               "width": 22,
               "height": 25,
-              "conf": 95
+              "conf": 93
             },
             {
               "text": "processo",
@@ -3394,7 +470,7 @@
               "top": 927,
               "width": 164,
               "height": 34,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "de",
@@ -3402,7 +478,7 @@
               "top": 915,
               "width": 44,
               "height": 35,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "aprendizagem",
@@ -3410,7 +486,7 @@
               "top": 915,
               "width": 268,
               "height": 45,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "do",
@@ -3418,7 +494,7 @@
               "top": 915,
               "width": 46,
               "height": 35,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "aluno,",
@@ -3426,7 +502,7 @@
               "top": 915,
               "width": 116,
               "height": 42,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "fornecendo",
@@ -3434,7 +510,7 @@
               "top": 914,
               "width": 215,
               "height": 36,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "uma",
@@ -3442,7 +518,7 @@
               "top": 926,
               "width": 83,
               "height": 24,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "visão",
@@ -3450,7 +526,7 @@
               "top": 915,
               "width": 100,
               "height": 36,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "geral",
@@ -3458,7 +534,7 @@
               "top": 915,
               "width": 93,
               "height": 45,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "do",
@@ -3466,7 +542,7 @@
               "top": 915,
               "width": 46,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "comportamento",
@@ -3474,7 +550,7 @@
               "top": 921,
               "width": 305,
               "height": 40,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "do",
@@ -3482,7 +558,7 @@
               "top": 971,
               "width": 47,
               "height": 35,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "aluno",
@@ -3490,7 +566,7 @@
               "top": 971,
               "width": 108,
               "height": 36,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "no",
@@ -3498,7 +574,7 @@
               "top": 981,
               "width": 48,
               "height": 25,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "ambiente",
@@ -3506,7 +582,7 @@
               "top": 970,
               "width": 174,
               "height": 35,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "escolar,",
@@ -3514,7 +590,7 @@
               "top": 970,
               "width": 142,
               "height": 41,
-              "conf": 61
+              "conf": 91
             },
             {
               "text": "com",
@@ -3522,7 +598,7 @@
               "top": 980,
               "width": 80,
               "height": 24,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "foco",
@@ -3530,7 +606,7 @@
               "top": 969,
               "width": 82,
               "height": 36,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "em",
@@ -3538,7 +614,7 @@
               "top": 980,
               "width": 58,
               "height": 24,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "aspectos",
@@ -3546,7 +622,7 @@
               "top": 974,
               "width": 162,
               "height": 40,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "observáveis",
@@ -3554,7 +630,7 @@
               "top": 969,
               "width": 226,
               "height": 35,
-              "conf": 96
+              "conf": 90
             },
             {
               "text": "durante",
@@ -3562,7 +638,7 @@
               "top": 969,
               "width": 141,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "as",
@@ -3570,7 +646,7 @@
               "top": 980,
               "width": 37,
               "height": 25,
-              "conf": 97
+              "conf": 93
             },
             {
               "text": "aulas.",
@@ -3578,7 +654,7 @@
               "top": 970,
               "width": 107,
               "height": 35,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "As",
@@ -3586,7 +662,7 @@
               "top": 971,
               "width": 53,
               "height": 34,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "informações",
@@ -3594,7 +670,7 @@
               "top": 970,
               "width": 241,
               "height": 43,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "aqui",
@@ -3602,7 +678,7 @@
               "top": 1025,
               "width": 83,
               "height": 45,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "descritas",
@@ -3610,7 +686,7 @@
               "top": 1025,
               "width": 169,
               "height": 35,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "são",
@@ -3618,7 +694,7 @@
               "top": 1026,
               "width": 62,
               "height": 33,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "baseadas",
@@ -3626,7 +702,7 @@
               "top": 1024,
               "width": 167,
               "height": 35,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "em",
@@ -3634,7 +710,7 @@
               "top": 1034,
               "width": 58,
               "height": 24,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "observações",
@@ -3642,7 +718,7 @@
               "top": 1024,
               "width": 234,
               "height": 43,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "realizadas",
@@ -3650,7 +726,7 @@
               "top": 1023,
               "width": 192,
               "height": 35,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "em",
@@ -3658,7 +734,7 @@
               "top": 1034,
               "width": 58,
               "height": 24,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "sala",
@@ -3666,7 +742,7 @@
               "top": 1023,
               "width": 75,
               "height": 35,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "de",
@@ -3674,7 +750,7 @@
               "top": 1023,
               "width": 43,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "aula",
@@ -3682,7 +758,7 @@
               "top": 1024,
               "width": 79,
               "height": 34,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "e",
@@ -3690,7 +766,7 @@
               "top": 1034,
               "width": 19,
               "height": 24,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "visam",
@@ -3698,7 +774,7 @@
               "top": 1024,
               "width": 115,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "auxiliar",
@@ -3706,7 +782,7 @@
               "top": 1024,
               "width": 150,
               "height": 35,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "na",
@@ -3714,7 +790,7 @@
               "top": 1035,
               "width": 46,
               "height": 24,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "compreensão",
@@ -3722,7 +798,7 @@
               "top": 1080,
               "width": 256,
               "height": 44,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "do",
@@ -3730,7 +806,7 @@
               "top": 1078,
               "width": 46,
               "height": 36,
-              "conf": 95
+              "conf": 92
             },
             {
               "text": "contexto",
@@ -3738,7 +814,7 @@
               "top": 1083,
               "width": 161,
               "height": 30,
-              "conf": 95
+              "conf": 91
             },
             {
               "text": "emocional",
@@ -3746,7 +822,7 @@
               "top": 1077,
               "width": 196,
               "height": 36,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "e",
@@ -3754,7 +830,7 @@
               "top": 1088,
               "width": 19,
               "height": 24,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "comportamental",
@@ -3762,7 +838,7 @@
               "top": 1077,
               "width": 312,
               "height": 46,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "do",
@@ -3770,7 +846,7 @@
               "top": 1077,
               "width": 47,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "aluno,",
@@ -3778,7 +854,7 @@
               "top": 1077,
               "width": 115,
               "height": 42,
-              "conf": 95
+              "conf": 92
             },
             {
               "text": "possibilitando",
@@ -3786,7 +862,7 @@
               "top": 1077,
               "width": 270,
               "height": 46,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "a",
@@ -3794,7 +870,7 @@
               "top": 1089,
               "width": 21,
               "height": 24,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "melhor",
@@ -3802,7 +878,7 @@
               "top": 1078,
               "width": 139,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "abordagem",
@@ -3810,7 +886,7 @@
               "top": 1133,
               "width": 217,
               "height": 45,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "nas",
@@ -3818,7 +894,7 @@
               "top": 1144,
               "width": 63,
               "height": 23,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "intervenções.",
@@ -3826,7 +902,7 @@
               "top": 1132,
               "width": 248,
               "height": 44,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "EVERTON",
@@ -3834,7 +910,7 @@
               "top": 1250,
               "width": 224,
               "height": 35,
-              "conf": 91
+              "conf": 92
             },
             {
               "text": "é",
@@ -3842,7 +918,7 @@
               "top": 1249,
               "width": 19,
               "height": 35,
-              "conf": 96
+              "conf": 97
             },
             {
               "text": "um",
@@ -3850,7 +926,7 @@
               "top": 1260,
               "width": 61,
               "height": 24,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "aluno",
@@ -3858,7 +934,7 @@
               "top": 1249,
               "width": 103,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "com",
@@ -3866,7 +942,7 @@
               "top": 1259,
               "width": 79,
               "height": 24,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "boa",
@@ -3874,7 +950,7 @@
               "top": 1248,
               "width": 70,
               "height": 36,
-              "conf": 95
+              "conf": 92
             },
             {
               "text": "frequência",
@@ -3882,7 +958,7 @@
               "top": 1248,
               "width": 203,
               "height": 45,
-              "conf": 95
+              "conf": 92
             },
             {
               "text": "escolar",
@@ -3890,7 +966,7 @@
               "top": 1248,
               "width": 137,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "e",
@@ -3898,7 +974,7 @@
               "top": 1258,
               "width": 19,
               "height": 24,
-              "conf": 94
+              "conf": 92
             },
             {
               "text": "acompanhamento",
@@ -3906,7 +982,7 @@
               "top": 1248,
               "width": 338,
               "height": 44,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "familiar.",
@@ -3914,13 +990,13 @@
               "top": 1248,
               "width": 156,
               "height": 35,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "E",
-              "left": 1917,
+              "left": 1920,
               "top": 1249,
-              "width": 14,
+              "width": 11,
               "height": 34,
               "conf": 96
             },
@@ -3930,7 +1006,7 @@
               "top": 1259,
               "width": 62,
               "height": 24,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "aluno",
@@ -3938,7 +1014,7 @@
               "top": 1249,
               "width": 107,
               "height": 35,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "que",
@@ -3946,7 +1022,7 @@
               "top": 1260,
               "width": 68,
               "height": 33,
-              "conf": 95
+              "conf": 91
             },
             {
               "text": "não",
@@ -3954,7 +1030,7 @@
               "top": 1306,
               "width": 69,
               "height": 34,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "consegue",
@@ -3962,7 +1038,7 @@
               "top": 1314,
               "width": 181,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "acompanhar",
@@ -3970,7 +1046,7 @@
               "top": 1303,
               "width": 231,
               "height": 45,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "a",
@@ -3978,7 +1054,7 @@
               "top": 1313,
               "width": 21,
               "height": 25,
-              "conf": 95
+              "conf": 93
             },
             {
               "text": "turma,",
@@ -3986,7 +1062,7 @@
               "top": 1308,
               "width": 122,
               "height": 37,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "tendo",
@@ -3994,7 +1070,7 @@
               "top": 1302,
               "width": 105,
               "height": 36,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "dificuldade",
@@ -4002,7 +1078,7 @@
               "top": 1302,
               "width": 216,
               "height": 36,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "em",
@@ -4010,7 +1086,7 @@
               "top": 1312,
               "width": 57,
               "height": 25,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "todas",
@@ -4018,7 +1094,7 @@
               "top": 1302,
               "width": 101,
               "height": 35,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "as",
@@ -4026,7 +1102,7 @@
               "top": 1313,
               "width": 38,
               "height": 25,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "disciplinas,",
@@ -4034,7 +1110,7 @@
               "top": 1302,
               "width": 213,
               "height": 45,
-              "conf": 95
+              "conf": 91
             },
             {
               "text": "chegando",
@@ -4042,7 +1118,7 @@
               "top": 1302,
               "width": 185,
               "height": 45,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "a",
@@ -4050,7 +1126,7 @@
               "top": 1314,
               "width": 21,
               "height": 24,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "ficar",
@@ -4058,7 +1134,7 @@
               "top": 1303,
               "width": 89,
               "height": 36,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "inseguro,",
@@ -4066,7 +1142,7 @@
               "top": 1360,
               "width": 179,
               "height": 44,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "nervoso",
@@ -4074,7 +1150,7 @@
               "top": 1369,
               "width": 150,
               "height": 25,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "e",
@@ -4082,7 +1158,7 @@
               "top": 1369,
               "width": 18,
               "height": 24,
-              "conf": 88
+              "conf": 93
             },
             {
               "text": "com",
@@ -4090,7 +1166,7 @@
               "top": 1369,
               "width": 80,
               "height": 24,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "crises",
@@ -4098,7 +1174,7 @@
               "top": 1358,
               "width": 105,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "fortes",
@@ -4106,7 +1182,7 @@
               "top": 1357,
               "width": 106,
               "height": 35,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "de",
@@ -4114,7 +1190,7 @@
               "top": 1358,
               "width": 44,
               "height": 34,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "ansiedade.",
@@ -4122,7 +1198,7 @@
               "top": 1357,
               "width": 200,
               "height": 35,
-              "conf": 93
+              "conf": 91
             },
             {
               "text": "EVERTON",
@@ -4130,15 +1206,15 @@
               "top": 1358,
               "width": 222,
               "height": 34,
-              "conf": 91
+              "conf": 92
             },
             {
               "text": "é",
-              "left": 1532,
-              "top": 1353,
+              "left": 1546,
+              "top": 1357,
               "width": 19,
-              "height": 55,
-              "conf": 96
+              "height": 35,
+              "conf": 92
             },
             {
               "text": "bastante",
@@ -4146,7 +1222,7 @@
               "top": 1357,
               "width": 156,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "tímido,",
@@ -4154,7 +1230,7 @@
               "top": 1357,
               "width": 135,
               "height": 43,
-              "conf": 95
+              "conf": 90
             },
             {
               "text": "disperso",
@@ -4162,7 +1238,7 @@
               "top": 1357,
               "width": 162,
               "height": 46,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "e",
@@ -4170,7 +1246,7 @@
               "top": 1369,
               "width": 19,
               "height": 24,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "muito",
@@ -4178,7 +1254,7 @@
               "top": 1358,
               "width": 112,
               "height": 35,
-              "conf": 96
+              "conf": 90
             },
             {
               "text": "calado.",
@@ -4186,7 +1262,7 @@
               "top": 1413,
               "width": 136,
               "height": 35,
-              "conf": 96
+              "conf": 90
             },
             {
               "text": "Durante",
@@ -4194,7 +1270,7 @@
               "top": 1413,
               "width": 153,
               "height": 34,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "muito",
@@ -4202,7 +1278,7 @@
               "top": 1411,
               "width": 108,
               "height": 35,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "tempo",
@@ -4210,7 +1286,7 @@
               "top": 1416,
               "width": 117,
               "height": 41,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "a",
@@ -4218,7 +1294,7 @@
               "top": 1423,
               "width": 21,
               "height": 23,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "família",
@@ -4226,7 +1302,7 @@
               "top": 1411,
               "width": 136,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "vem",
@@ -4234,7 +1310,7 @@
               "top": 1422,
               "width": 82,
               "height": 24,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "tentando",
@@ -4242,7 +1318,7 @@
               "top": 1411,
               "width": 165,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "de",
@@ -4250,7 +1326,7 @@
               "top": 1411,
               "width": 43,
               "height": 35,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "diversas",
@@ -4258,7 +1334,7 @@
               "top": 1411,
               "width": 156,
               "height": 35,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "formas,",
@@ -4266,7 +1342,7 @@
               "top": 1410,
               "width": 142,
               "height": 43,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "para",
@@ -4274,7 +1350,7 @@
               "top": 1423,
               "width": 82,
               "height": 34,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "que",
@@ -4282,15 +1358,15 @@
               "top": 1423,
               "width": 68,
               "height": 34,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "o",
-              "left": 1990,
+              "left": 1991,
               "top": 1423,
-              "width": 10,
+              "width": 9,
               "height": 23,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "mesmo",
@@ -4298,7 +1374,7 @@
               "top": 1423,
               "width": 141,
               "height": 24,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "se",
@@ -4306,7 +1382,7 @@
               "top": 1423,
               "width": 38,
               "height": 24,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "desenvolva,",
@@ -4314,7 +1390,7 @@
               "top": 1466,
               "width": 230,
               "height": 43,
-              "conf": 96
+              "conf": 90
             },
             {
               "text": "mas",
@@ -4322,7 +1398,7 @@
               "top": 1477,
               "width": 75,
               "height": 25,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "isso",
@@ -4330,7 +1406,7 @@
               "top": 1466,
               "width": 71,
               "height": 36,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "não",
@@ -4338,7 +1414,7 @@
               "top": 1467,
               "width": 67,
               "height": 34,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "tem",
@@ -4346,7 +1422,7 @@
               "top": 1471,
               "width": 71,
               "height": 30,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "tido",
@@ -4354,7 +1430,7 @@
               "top": 1465,
               "width": 74,
               "height": 36,
-              "conf": 95
+              "conf": 92
             },
             {
               "text": "resultados",
@@ -4362,7 +1438,7 @@
               "top": 1465,
               "width": 194,
               "height": 36,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "e",
@@ -4370,7 +1446,7 @@
               "top": 1475,
               "width": 19,
               "height": 25,
-              "conf": 95
+              "conf": 93
             },
             {
               "text": "tem",
@@ -4378,7 +1454,7 @@
               "top": 1470,
               "width": 72,
               "height": 30,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "causado",
@@ -4386,7 +1462,7 @@
               "top": 1465,
               "width": 153,
               "height": 36,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "algumas",
@@ -4394,7 +1470,7 @@
               "top": 1465,
               "width": 157,
               "height": 45,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "frustrações",
@@ -4402,7 +1478,7 @@
               "top": 1465,
               "width": 207,
               "height": 44,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "que",
@@ -4410,7 +1486,7 @@
               "top": 1477,
               "width": 70,
               "height": 34,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "acaba",
@@ -4418,7 +1494,7 @@
               "top": 1466,
               "width": 110,
               "height": 36,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "desencadeando",
@@ -4426,7 +1502,7 @@
               "top": 1521,
               "width": 293,
               "height": 37,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "outros",
@@ -4434,7 +1510,7 @@
               "top": 1526,
               "width": 117,
               "height": 31,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "problemas.",
@@ -4442,7 +1518,7 @@
               "top": 1520,
               "width": 210,
               "height": 46,
-              "conf": 96
+              "conf": 90
             },
             {
               "text": "Interação",
@@ -4450,7 +1526,7 @@
               "top": 1635,
               "width": 181,
               "height": 43,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "com",
@@ -4458,7 +1534,7 @@
               "top": 1644,
               "width": 82,
               "height": 25,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "Colegas",
@@ -4466,7 +1542,7 @@
               "top": 1633,
               "width": 150,
               "height": 45,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "e",
@@ -4482,7 +1558,7 @@
               "top": 1632,
               "width": 229,
               "height": 36,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "Por",
@@ -4490,7 +1566,7 @@
               "top": 1749,
               "width": 68,
               "height": 35,
-              "conf": 97
+              "conf": 92
             },
             {
               "text": "ser",
@@ -4498,7 +1574,7 @@
               "top": 1758,
               "width": 56,
               "height": 25,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "uma",
@@ -4506,7 +1582,7 @@
               "top": 1758,
               "width": 85,
               "height": 24,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "criança",
@@ -4514,7 +1590,7 @@
               "top": 1746,
               "width": 137,
               "height": 44,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "tímida,",
@@ -4522,7 +1598,7 @@
               "top": 1745,
               "width": 132,
               "height": 43,
-              "conf": 95
+              "conf": 90
             },
             {
               "text": "reservada",
@@ -4530,7 +1606,7 @@
               "top": 1744,
               "width": 183,
               "height": 37,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "e",
@@ -4538,7 +1614,7 @@
               "top": 1755,
               "width": 19,
               "height": 25,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "muito",
@@ -4546,7 +1622,7 @@
               "top": 1744,
               "width": 111,
               "height": 36,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "calado,",
@@ -4554,7 +1630,7 @@
               "top": 1744,
               "width": 136,
               "height": 43,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "se",
@@ -4562,7 +1638,7 @@
               "top": 1754,
               "width": 37,
               "height": 26,
-              "conf": 95
+              "conf": 91
             },
             {
               "text": "comunica",
@@ -4570,7 +1646,7 @@
               "top": 1744,
               "width": 188,
               "height": 35,
-              "conf": 95
+              "conf": 92
             },
             {
               "text": "pouquíssimo.",
@@ -4578,7 +1654,7 @@
               "top": 1744,
               "width": 254,
               "height": 46,
-              "conf": 95
+              "conf": 91
             },
             {
               "text": "Isso",
@@ -4586,7 +1662,7 @@
               "top": 1745,
               "width": 77,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "dificulta",
@@ -4594,7 +1670,7 @@
               "top": 1744,
               "width": 164,
               "height": 36,
-              "conf": 93
+              "conf": 81
             },
             {
               "text": "sua",
@@ -4602,7 +1678,7 @@
               "top": 1756,
               "width": 64,
               "height": 25,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "aprendizagem.",
@@ -4610,7 +1686,7 @@
               "top": 1802,
               "width": 282,
               "height": 47,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "Durante",
@@ -4618,7 +1694,7 @@
               "top": 1861,
               "width": 157,
               "height": 34,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "os",
@@ -4626,7 +1702,7 @@
               "top": 1870,
               "width": 41,
               "height": 24,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "momentos",
@@ -4634,7 +1710,7 @@
               "top": 1863,
               "width": 197,
               "height": 31,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "de",
@@ -4642,7 +1718,7 @@
               "top": 1857,
               "width": 43,
               "height": 36,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "maior",
@@ -4650,7 +1726,7 @@
               "top": 1857,
               "width": 111,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "desafio,",
@@ -4658,7 +1734,7 @@
               "top": 1856,
               "width": 148,
               "height": 43,
-              "conf": 96
+              "conf": 90
             },
             {
               "text": "como",
@@ -4666,7 +1742,7 @@
               "top": 1868,
               "width": 105,
               "height": 24,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "por",
@@ -4674,7 +1750,7 @@
               "top": 1867,
               "width": 64,
               "height": 34,
-              "conf": 95
+              "conf": 92
             },
             {
               "text": "exemplo:",
@@ -4682,7 +1758,7 @@
               "top": 1855,
               "width": 176,
               "height": 46,
-              "conf": 95
+              "conf": 90
             },
             {
               "text": "provas,",
@@ -4690,7 +1766,7 @@
               "top": 1867,
               "width": 139,
               "height": 34,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "mudança",
@@ -4698,7 +1774,7 @@
               "top": 1855,
               "width": 171,
               "height": 44,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "de",
@@ -4706,7 +1782,7 @@
               "top": 1855,
               "width": 44,
               "height": 36,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "rotina,",
@@ -4714,7 +1790,7 @@
               "top": 1855,
               "width": 124,
               "height": 44,
-              "conf": 96
+              "conf": 90
             },
             {
               "text": "interações",
@@ -4722,7 +1798,7 @@
               "top": 1856,
               "width": 197,
               "height": 44,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "sociais,",
@@ -4730,7 +1806,7 @@
               "top": 1913,
               "width": 143,
               "height": 43,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "o",
@@ -4738,7 +1814,7 @@
               "top": 1924,
               "width": 23,
               "height": 24,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "aluno",
@@ -4746,7 +1822,7 @@
               "top": 1913,
               "width": 104,
               "height": 35,
-              "conf": 97
+              "conf": 92
             },
             {
               "text": "tende",
@@ -4754,7 +1830,7 @@
               "top": 1912,
               "width": 102,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "a",
@@ -4778,7 +1854,7 @@
               "top": 1911,
               "width": 87,
               "height": 35,
-              "conf": 96
+              "conf": 90
             },
             {
               "text": "ansioso,",
@@ -4786,7 +1862,7 @@
               "top": 1910,
               "width": 155,
               "height": 43,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "demonstrar",
@@ -4794,7 +1870,7 @@
               "top": 1910,
               "width": 219,
               "height": 35,
-              "conf": 95
+              "conf": 91
             },
             {
               "text": "irritação.",
@@ -4802,7 +1878,7 @@
               "top": 1909,
               "width": 169,
               "height": 44,
-              "conf": 96
+              "conf": 90
             },
             {
               "text": "Recomenda-se",
@@ -4810,7 +1886,7 @@
               "top": 1968,
               "width": 286,
               "height": 37,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "que",
@@ -4818,7 +1894,7 @@
               "top": 1979,
               "width": 67,
               "height": 34,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "o",
@@ -4826,7 +1902,7 @@
               "top": 1979,
               "width": 22,
               "height": 24,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "acompanhamento",
@@ -4834,7 +1910,7 @@
               "top": 1966,
               "width": 334,
               "height": 46,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "psicológico",
@@ -4842,7 +1918,7 @@
               "top": 1965,
               "width": 221,
               "height": 46,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "leve",
@@ -4850,7 +1926,7 @@
               "top": 1965,
               "width": 79,
               "height": 35,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "em",
@@ -4858,7 +1934,7 @@
               "top": 1976,
               "width": 58,
               "height": 24,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "consideração",
@@ -4866,7 +1942,7 @@
               "top": 1964,
               "width": 248,
               "height": 44,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "aspectos",
@@ -4874,7 +1950,7 @@
               "top": 1971,
               "width": 162,
               "height": 39,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "que",
@@ -4882,7 +1958,7 @@
               "top": 1977,
               "width": 70,
               "height": 33,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "devem",
@@ -4890,7 +1966,7 @@
               "top": 1965,
               "width": 131,
               "height": 36,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "ser",
@@ -4898,7 +1974,7 @@
               "top": 1976,
               "width": 55,
               "height": 25,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "explorados,",
@@ -4906,7 +1982,7 @@
               "top": 2023,
               "width": 223,
               "height": 45,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "como",
@@ -4914,15 +1990,15 @@
               "top": 2033,
               "width": 105,
               "height": 24,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "a",
-              "left": 652,
-              "top": 2015,
+              "left": 662,
+              "top": 2033,
               "width": 20,
-              "height": 57,
-              "conf": 96
+              "height": 24,
+              "conf": 92
             },
             {
               "text": "ansiedade",
@@ -4930,7 +2006,7 @@
               "top": 2021,
               "width": 184,
               "height": 36,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "em",
@@ -4938,7 +2014,7 @@
               "top": 2032,
               "width": 56,
               "height": 23,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "atividades",
@@ -4946,7 +2022,7 @@
               "top": 2021,
               "width": 193,
               "height": 34,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "escolares,",
@@ -4954,7 +2030,7 @@
               "top": 2020,
               "width": 186,
               "height": 41,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "dificuldades",
@@ -4962,7 +2038,7 @@
               "top": 2019,
               "width": 235,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "de",
@@ -4970,7 +2046,7 @@
               "top": 2019,
               "width": 44,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "concentração.",
@@ -4978,7 +2054,7 @@
               "top": 2021,
               "width": 261,
               "height": 50,
-              "conf": 96
+              "conf": 90
             },
             {
               "text": "Observações",
@@ -4986,7 +2062,7 @@
               "top": 2133,
               "width": 247,
               "height": 43,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "Finais:",
@@ -4994,7 +2070,7 @@
               "top": 2132,
               "width": 126,
               "height": 35,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "Este",
@@ -5002,7 +2078,7 @@
               "top": 2246,
               "width": 83,
               "height": 34,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "relatório",
@@ -5010,7 +2086,7 @@
               "top": 2243,
               "width": 164,
               "height": 36,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "será",
@@ -5018,7 +2094,7 @@
               "top": 2243,
               "width": 76,
               "height": 35,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "útil",
@@ -5026,7 +2102,7 @@
               "top": 2242,
               "width": 61,
               "height": 36,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "para",
@@ -5034,7 +2110,7 @@
               "top": 2253,
               "width": 82,
               "height": 34,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "acompanhar",
@@ -5042,7 +2118,7 @@
               "top": 2241,
               "width": 234,
               "height": 45,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "a",
@@ -5050,7 +2126,7 @@
               "top": 2251,
               "width": 20,
               "height": 24,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "evolução",
@@ -5058,7 +2134,7 @@
               "top": 2241,
               "width": 173,
               "height": 43,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "do",
@@ -5066,7 +2142,7 @@
               "top": 2241,
               "width": 46,
               "height": 34,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "comportamento",
@@ -5074,7 +2150,7 @@
               "top": 2245,
               "width": 301,
               "height": 40,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "do",
@@ -5082,7 +2158,7 @@
               "top": 2240,
               "width": 46,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "aluno",
@@ -5090,7 +2166,7 @@
               "top": 2240,
               "width": 103,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "ao",
@@ -5098,7 +2174,7 @@
               "top": 2251,
               "width": 44,
               "height": 24,
-              "conf": 95
+              "conf": 92
             },
             {
               "text": "longo",
@@ -5106,7 +2182,7 @@
               "top": 2240,
               "width": 110,
               "height": 45,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "do",
@@ -5114,7 +2190,7 @@
               "top": 2241,
               "width": 48,
               "height": 34,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "tempo,",
@@ -5122,7 +2198,7 @@
               "top": 2245,
               "width": 131,
               "height": 40,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "com",
@@ -5130,7 +2206,7 @@
               "top": 2311,
               "width": 84,
               "height": 24,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "o",
@@ -5138,7 +2214,7 @@
               "top": 2311,
               "width": 22,
               "height": 23,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "objetivo",
@@ -5146,7 +2222,7 @@
               "top": 2298,
               "width": 159,
               "height": 45,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "de",
@@ -5154,7 +2230,7 @@
               "top": 2297,
               "width": 43,
               "height": 36,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "adaptar",
@@ -5162,7 +2238,7 @@
               "top": 2297,
               "width": 138,
               "height": 45,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "o",
@@ -5170,7 +2246,7 @@
               "top": 2308,
               "width": 22,
               "height": 24,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "plano",
@@ -5178,7 +2254,7 @@
               "top": 2296,
               "width": 105,
               "height": 45,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "de",
@@ -5186,7 +2262,7 @@
               "top": 2296,
               "width": 44,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "intervenção",
@@ -5194,7 +2270,7 @@
               "top": 2295,
               "width": 222,
               "height": 43,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "conforme",
@@ -5202,7 +2278,7 @@
               "top": 2294,
               "width": 184,
               "height": 36,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "as",
@@ -5210,7 +2286,7 @@
               "top": 2306,
               "width": 38,
               "height": 24,
-              "conf": 97
+              "conf": 92
             },
             {
               "text": "necessidades",
@@ -5218,7 +2294,7 @@
               "top": 2294,
               "width": 248,
               "height": 35,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "observadas.",
@@ -5226,7 +2302,7 @@
               "top": 2294,
               "width": 220,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "O",
@@ -5234,7 +2310,7 @@
               "top": 2295,
               "width": 33,
               "height": 34,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "aluno",
@@ -5242,7 +2318,7 @@
               "top": 2294,
               "width": 108,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "acima",
@@ -5250,7 +2326,7 @@
               "top": 2294,
               "width": 115,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "citado",
@@ -5258,7 +2334,7 @@
               "top": 2353,
               "width": 118,
               "height": 36,
-              "conf": 97
+              "conf": 90
             },
             {
               "text": "apresenta",
@@ -5266,7 +2342,7 @@
               "top": 2357,
               "width": 184,
               "height": 41,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "sintomas",
@@ -5274,7 +2350,7 @@
               "top": 2351,
               "width": 166,
               "height": 36,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "de",
@@ -5282,7 +2358,7 @@
               "top": 2350,
               "width": 43,
               "height": 35,
-              "conf": 93
+              "conf": 92
             },
             {
               "text": "defcite",
@@ -5298,7 +2374,7 @@
               "top": 2349,
               "width": 43,
               "height": 35,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "atenção,",
@@ -5306,7 +2382,7 @@
               "top": 2350,
               "width": 157,
               "height": 42,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "compativel",
@@ -5314,7 +2390,7 @@
               "top": 2348,
               "width": 215,
               "height": 46,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "com",
@@ -5322,7 +2398,7 @@
               "top": 2359,
               "width": 82,
               "height": 24,
-              "conf": 93
+              "conf": 91
             },
             {
               "text": "TDH",
@@ -5330,15 +2406,15 @@
               "top": 2349,
               "width": 98,
               "height": 33,
-              "conf": 93
+              "conf": 92
             },
             {
               "text": "e",
-              "left": 1631,
-              "top": 2343,
-              "width": 21,
-              "height": 59,
-              "conf": 96
+              "left": 1646,
+              "top": 2359,
+              "width": 19,
+              "height": 24,
+              "conf": 93
             },
             {
               "text": "investigação",
@@ -5346,7 +2422,7 @@
               "top": 2347,
               "width": 236,
               "height": 46,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "para",
@@ -5354,7 +2430,7 @@
               "top": 2359,
               "width": 87,
               "height": 34,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "outros.",
@@ -5362,7 +2438,7 @@
               "top": 2353,
               "width": 131,
               "height": 30,
-              "conf": 96
+              "conf": 89
             },
             {
               "text": "O",
@@ -5370,7 +2446,7 @@
               "top": 2349,
               "width": 33,
               "height": 35,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "aluno",
@@ -5378,7 +2454,7 @@
               "top": 2408,
               "width": 106,
               "height": 34,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "precisa",
@@ -5386,7 +2462,7 @@
               "top": 2406,
               "width": 140,
               "height": 46,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "de",
@@ -5394,7 +2470,7 @@
               "top": 2406,
               "width": 44,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "acompanhamento",
@@ -5402,7 +2478,7 @@
               "top": 2405,
               "width": 335,
               "height": 45,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "com",
@@ -5410,7 +2486,7 @@
               "top": 2414,
               "width": 80,
               "height": 25,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "outros",
@@ -5418,7 +2494,7 @@
               "top": 2409,
               "width": 119,
               "height": 29,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "profissionais.",
@@ -5426,7 +2502,7 @@
               "top": 2402,
               "width": 258,
               "height": 46,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "O",
@@ -5434,7 +2510,7 @@
               "top": 2464,
               "width": 32,
               "height": 34,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "relatório",
@@ -5442,7 +2518,7 @@
               "top": 2462,
               "width": 165,
               "height": 36,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "resume",
@@ -5450,15 +2526,15 @@
               "top": 2472,
               "width": 138,
               "height": 25,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "a",
-              "left": 628,
-              "top": 2445,
-              "width": 22,
-              "height": 63,
-              "conf": 96
+              "left": 640,
+              "top": 2472,
+              "width": 20,
+              "height": 24,
+              "conf": 92
             },
             {
               "text": "situação",
@@ -5466,7 +2542,7 @@
               "top": 2461,
               "width": 154,
               "height": 43,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "atual",
@@ -5474,7 +2550,7 @@
               "top": 2459,
               "width": 90,
               "height": 36,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "do",
@@ -5482,7 +2558,7 @@
               "top": 2459,
               "width": 46,
               "height": 35,
-              "conf": 97
+              "conf": 90
             },
             {
               "text": "aluno",
@@ -5490,7 +2566,7 @@
               "top": 2459,
               "width": 106,
               "height": 35,
-              "conf": 93
+              "conf": 91
             },
             {
               "text": "EVERTON,",
@@ -5498,15 +2574,15 @@
               "top": 2459,
               "width": 232,
               "height": 41,
-              "conf": 90
+              "conf": 91
             },
             {
               "text": "e",
-              "left": 1395,
-              "top": 2445,
-              "width": 21,
-              "height": 63,
-              "conf": 95
+              "left": 1408,
+              "top": 2469,
+              "width": 19,
+              "height": 24,
+              "conf": 92
             },
             {
               "text": "visa",
@@ -5514,7 +2590,7 @@
               "top": 2458,
               "width": 78,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "proporcionar",
@@ -5522,7 +2598,7 @@
               "top": 2457,
               "width": 248,
               "height": 46,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "informações",
@@ -5530,7 +2606,7 @@
               "top": 2457,
               "width": 238,
               "height": 44,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "úteis.",
@@ -5538,7 +2614,7 @@
               "top": 2457,
               "width": 103,
               "height": 36,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "É",
@@ -5546,7 +2622,7 @@
               "top": 2449,
               "width": 28,
               "height": 44,
-              "conf": 96
+              "conf": 97
             },
             {
               "text": "fundamental",
@@ -5554,7 +2630,7 @@
               "top": 2517,
               "width": 242,
               "height": 36,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "que",
@@ -5562,7 +2638,7 @@
               "top": 2527,
               "width": 68,
               "height": 34,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "as",
@@ -5570,7 +2646,7 @@
               "top": 2527,
               "width": 37,
               "height": 24,
-              "conf": 95
+              "conf": 93
             },
             {
               "text": "medidas",
@@ -5578,7 +2654,7 @@
               "top": 2515,
               "width": 157,
               "height": 35,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "de",
@@ -5586,7 +2662,7 @@
               "top": 2514,
               "width": 44,
               "height": 36,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "apoio",
@@ -5594,7 +2670,7 @@
               "top": 2514,
               "width": 103,
               "height": 45,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "continuem",
@@ -5602,15 +2678,15 @@
               "top": 2513,
               "width": 204,
               "height": 36,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "a",
-              "left": 1200,
-              "top": 2508,
+              "left": 1210,
+              "top": 2524,
               "width": 20,
-              "height": 57,
-              "conf": 96
+              "height": 23,
+              "conf": 93
             },
             {
               "text": "ser",
@@ -5618,7 +2694,7 @@
               "top": 2523,
               "width": 55,
               "height": 25,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "adaptadas",
@@ -5626,7 +2702,7 @@
               "top": 2512,
               "width": 188,
               "height": 45,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "conforme",
@@ -5634,7 +2710,7 @@
               "top": 2512,
               "width": 183,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "necessário",
@@ -5642,7 +2718,7 @@
               "top": 2512,
               "width": 196,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "para",
@@ -5650,7 +2726,7 @@
               "top": 2523,
               "width": 86,
               "height": 34,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "promover",
@@ -5658,7 +2734,7 @@
               "top": 2523,
               "width": 191,
               "height": 34,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "o",
@@ -5666,7 +2742,7 @@
               "top": 2583,
               "width": 22,
               "height": 25,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "desenvolvimento",
@@ -5674,7 +2750,7 @@
               "top": 2571,
               "width": 330,
               "height": 37,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "acadêmico",
@@ -5682,7 +2758,7 @@
               "top": 2569,
               "width": 203,
               "height": 37,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "e",
@@ -5690,7 +2766,7 @@
               "top": 2580,
               "width": 19,
               "height": 24,
-              "conf": 76
+              "conf": 92
             },
             {
               "text": "pessoal",
@@ -5698,7 +2774,7 @@
               "top": 2567,
               "width": 138,
               "height": 47,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "do",
@@ -5706,7 +2782,7 @@
               "top": 2567,
               "width": 46,
               "height": 36,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "aluno.",
@@ -5714,23 +2790,23 @@
               "top": 2567,
               "width": 116,
               "height": 36,
-              "conf": 96
+              "conf": 92
             },
             {
-              "text": "X",
+              "text": "k",
               "left": 1419,
-              "top": 2588,
-              "width": 58,
-              "height": 117,
-              "conf": 0
+              "top": 2600,
+              "width": 61,
+              "height": 105,
+              "conf": 41
             },
             {
-              "text": "Kgzla-Maria",
+              "text": "Kssle-Maária",
               "left": 1238,
               "top": 2722,
               "width": 231,
               "height": 50,
-              "conf": 58
+              "conf": 39
             },
             {
               "text": "Herculano",
@@ -5738,7 +2814,7 @@
               "top": 2736,
               "width": 199,
               "height": 36,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "Oliveira",
@@ -5746,7 +2822,7 @@
               "top": 2736,
               "width": 156,
               "height": 35,
-              "conf": 96
+              "conf": 91
             },
             {
               "text": "Coordenadora",
@@ -5754,7 +2830,7 @@
               "top": 2796,
               "width": 274,
               "height": 37,
-              "conf": 93
+              "conf": 91
             },
             {
               "text": "Pedagogica",
@@ -5762,7 +2838,7 @@
               "top": 2796,
               "width": 223,
               "height": 45,
-              "conf": 91
+              "conf": 92
             },
             {
               "text": "Paraipaba,",
@@ -5778,7 +2854,7 @@
               "top": 3037,
               "width": 43,
               "height": 34,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "de",
@@ -5786,7 +2862,7 @@
               "top": 3036,
               "width": 45,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "dezembro",
@@ -5794,7 +2870,7 @@
               "top": 3036,
               "width": 189,
               "height": 35,
-              "conf": 96
+              "conf": 92
             },
             {
               "text": "de",
@@ -5802,7 +2878,7 @@
               "top": 3035,
               "width": 44,
               "height": 35,
-              "conf": 96
+              "conf": 93
             },
             {
               "text": "2024.",
@@ -5810,7 +2886,7 @@
               "top": 3035,
               "width": 104,
               "height": 35,
-              "conf": 96
+              "conf": 91
             }
           ]
         }
