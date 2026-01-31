@@ -175,14 +175,76 @@ def analyze_extractions_with_openai(
     structured_result: Dict[str, Any] = {}
     per_doc: List[Dict[str, Any]] = []
 
+    INSS_KEYWORDS = ["inss", "instituto nacional", "do seguro social"]
+
+    def _is_inss_doc(ex: Dict[str, Any]) -> bool:
+        # Documento do INSS: detecta por palavras-chave na página 1.
+        # Não depende do total de páginas, para garantir que analisaremos as 6 primeiras páginas
+        # mesmo em PDFs menores/recortados.
+        t1 = ""
+        if isinstance(ex.get("pages"), list) and ex["pages"]:
+            t1 = (ex["pages"][0].get("text") or "")
+        t1 = t1.lower()
+        return any(k in t1 for k in INSS_KEYWORDS)
+
+    def _pages_containing(ex: Dict[str, Any], pages: List[int], needle: str) -> List[int]:
+        n = (needle or "").strip().lower()
+        hits: List[int] = []
+        for pn in pages:
+            for p in ex.get("pages", []) or []:
+                if p.get("page_number") == pn:
+                    if n in ((p.get("text") or "").lower()):
+                        hits.append(pn)
+                    break
+        return hits
+
+    def _is_laudo_doc(ex: Dict[str, Any]) -> bool:
+        t1 = ""
+        if isinstance(ex.get("pages"), list) and ex["pages"]:
+            t1 = (ex["pages"][0].get("text") or "").lower()
+        return ("laudo" in t1) and ("médic" in t1 or "medic" in t1 or "crm" in t1 or "rqe" in t1)
+
+    def _score_psiquiatria(ex: Dict[str, Any], pages: List[int]) -> int:
+        score = 0
+        needles = ["psiquiatr", "psiquiátr", "psiquiatria", "psiquiatra"]
+        # olha só nas duas primeiras páginas analisadas
+        for pn in pages[: min(len(pages), 2)]:
+            txt = ""
+            for p in ex.get("pages", []) or []:
+                if p.get("page_number") == pn:
+                    txt = (p.get("text") or "").lower()
+                    break
+            for n in needles:
+                score += txt.count(n)
+        return score
+
+    # pré-calcula páginas analisadas e papéis dos laudos (principal x segundo)
+    pages_by_source: Dict[str, List[int]] = {}
+    laudo_candidates: List[Tuple[str, int]] = []
     for ex_idx, ex in enumerate(extractions, start=1):
         source = ex.get("source") or f"documento_{ex_idx}"
-        page_numbers = select_page_numbers_for_extraction(
+        pages = select_page_numbers_for_extraction(
             ex,
             selected_pages=None,
             inss_max_pages=inss_max_pages,
             inss_min_total_pages=inss_min_total_pages,
         )
+        pages_by_source[source] = pages
+        if _is_laudo_doc(ex):
+            laudo_candidates.append((source, _score_psiquiatria(ex, pages)))
+
+    laudo_roles: Dict[str, str] = { (ex.get("source") or f"documento_{i+1}") : "none" for i, ex in enumerate(extractions) }
+    if len(laudo_candidates) >= 2:
+        segundo = sorted(enumerate(laudo_candidates), key=lambda it: (-it[1][1], it[0]))[0][1][0]
+        principal = next((s for (s, _) in laudo_candidates if s != segundo), laudo_candidates[0][0])
+        laudo_roles[principal] = "principal"
+        laudo_roles[segundo] = "segundo"
+    elif len(laudo_candidates) == 1:
+        laudo_roles[laudo_candidates[0][0]] = "principal"
+
+    for ex_idx, ex in enumerate(extractions, start=1):
+        source = ex.get("source") or f"documento_{ex_idx}"
+        page_numbers = pages_by_source.get(source) or []
         per_doc.append(
             {
                 "source": source,
@@ -194,16 +256,65 @@ def analyze_extractions_with_openai(
         if not page_numbers:
             continue
 
+        is_inss_doc = _is_inss_doc(ex)
+        outorgante_pages = _pages_containing(ex, page_numbers, "outorgante") if is_inss_doc else []
+        # fallback para casos onde a seção esteja rotulada de outra forma
+        if is_inss_doc and not outorgante_pages:
+            outorgante_pages = _pages_containing(ex, page_numbers, "procuração")
+        if is_inss_doc and not outorgante_pages:
+            outorgante_pages = _pages_containing(ex, page_numbers, "procuracao")
+
+        laudo_role = laudo_roles.get(source, "none")
+
         chunks = [page_numbers] if pages_per_call <= 0 else [page_numbers[i : i + pages_per_call] for i in range(0, len(page_numbers), pages_per_call)]
         for chunk_idx, chunk in enumerate(chunks):
             chunk_text = build_text_from_ocr(ex, pages=chunk)
             if not chunk_text.strip():
                 continue
 
+            personal_data_policy = (
+                "POLÍTICA DE DADOS PESSOAIS (OBRIGATÓRIA):\n"
+                "- Os campos de 'qualificacao_parte_autora' representam dados pessoais do paciente/parte autora.\n"
+            )
+            if is_inss_doc:
+                personal_data_policy += (
+                    "- ESTE documento é o PDF do INSS.\n"
+                    f"- Extraia 'qualificacao_parte_autora' SOMENTE a partir da(s) página(s) que contém 'OUTORGANTE'. Páginas detectadas: {outorgante_pages or 'nenhuma'}.\n"
+                    "- Se não houver informação suficiente nessas páginas, retorne null.\n"
+                    "- Nunca use 'Horlando Braga Filho' como dados pessoais do paciente/parte autora.\n"
+                )
+            else:
+                personal_data_policy += (
+                    "- ESTE documento NÃO é o PDF do INSS.\n"
+                    "- Portanto, retorne TODOS os campos de 'qualificacao_parte_autora' como null.\n"
+                )
+
+            laudo_policy = (
+                "POLÍTICA DOS LAUDOS (OBRIGATÓRIA):\n"
+                "- Existem 2 laudos médicos distintos. Não misture médico/especialidade/datas/CIDs entre eles.\n"
+            )
+            if laudo_role == "principal":
+                laudo_policy += (
+                    "- ESTE documento é o PRIMEIRO LAUDO (laudo_principal). Preencha COMPLETAMENTE 'dados_medicos.laudo_principal'.\n"
+                    "- Retorne 'dados_medicos.laudo_psiquiatrico_segundo_laudo' como null.\n"
+                )
+            elif laudo_role == "segundo":
+                laudo_policy += (
+                    "- ESTE documento é o SEGUNDO LAUDO (laudo_psiquiatrico_segundo_laudo). Preencha COMPLETAMENTE 'dados_medicos.laudo_psiquiatrico_segundo_laudo'.\n"
+                    "- Retorne 'dados_medicos.laudo_principal' como null.\n"
+                )
+            else:
+                laudo_policy += (
+                    "- Se este documento não for um dos laudos, retorne ambos os blocos de laudo como null.\n"
+                )
+
             user_msg = (
                 f"Documento fonte: {source}\n"
-                "Analise o texto a seguir e preencha os campos do schema. Retorne somente o JSON. "
-                "Texto:\n" + chunk_text
+                "Analise o texto a seguir e preencha os campos do schema. Retorne somente o JSON.\n"
+                + personal_data_policy
+                + laudo_policy
+                + "Texto:\n"
+                + chunk_text
             )
 
             messages = [

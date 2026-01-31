@@ -22,7 +22,7 @@ import os
 import sys
 import time
 import textwrap
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 try:
     import openai
@@ -47,6 +47,8 @@ INSS_KEYWORDS = [
     "inss",
     "instituto nacional",
     "do seguro social",
+    "INSS",
+    "Instituto Nacional do Seguro Social"
 ]
 
 
@@ -241,6 +243,85 @@ def _contains_inss_keywords(text: str) -> bool:
     return any(k in t for k in INSS_KEYWORDS)
 
 
+def _is_inss_document(ocr_like: Dict[str, Any], inss_min_total_pages: int) -> bool:
+    """Heurística: documento INSS = palavras-chave na página 1.
+
+    Observação:
+    Antes exigíamos "documento grande" (>= inss_min_total_pages). Isso falha quando o PDF do
+    INSS tem poucas páginas ou quando a extração vem "recortada". Para garantir a regra
+    pedida (analisar as 6 primeiras páginas do INSS), classificamos como INSS apenas pela
+    presença de palavras-chave na página 1.
+    """
+    first_page_text = _get_page_text(ocr_like, 1)
+    return _contains_inss_keywords(first_page_text)
+
+
+def _find_pages_containing(ocr_like: Dict[str, Any], pages: List[int], needle: str) -> List[int]:
+    n = (needle or "").strip().lower()
+    if not n:
+        return []
+    hits: List[int] = []
+    for pn in pages:
+        txt = _get_page_text(ocr_like, pn)
+        if n in (txt or "").lower():
+            hits.append(pn)
+    return hits
+
+
+def _is_laudo_document(ocr_like: Dict[str, Any]) -> bool:
+    """Heurística simples para detectar se é um laudo médico."""
+    t1 = _get_page_text(ocr_like, 1).lower()
+    return ("laudo" in t1) and ("médic" in t1 or "medic" in t1 or "crm" in t1 or "rqe" in t1)
+
+
+def _score_psiquiatria(ocr_like: Dict[str, Any], pages: List[int]) -> int:
+    """Score para identificar laudo psiquiátrico/segundo laudo."""
+    score = 0
+    needles = ["psiquiatr", "psiquiátr", "psiquiatria", "psiquiatra"]
+    for pn in pages[: min(len(pages), 2)]:  # olha no máximo 2 páginas iniciais selecionadas
+        txt = (_get_page_text(ocr_like, pn) or "").lower()
+        for n in needles:
+            score += txt.count(n)
+    return score
+
+
+def _assign_laudo_roles(
+    extractions: List[Dict[str, Any]],
+    selected_pages_by_source: Dict[str, List[int]],
+) -> Dict[str, str]:
+    """Define papéis para laudos: 'principal' e 'segundo' sem misturar.
+
+    Regra:
+    - detecta documentos que parecem 'laudo'
+    - escolhe o mais "psiquiatria" como 'segundo'
+    - o outro como 'principal'
+    - os demais: 'none'
+    """
+    laudos: List[Tuple[str, int]] = []  # (source, score)
+    for ex in extractions:
+        source = ex.get("source") or ""
+        pages = selected_pages_by_source.get(source, []) or []
+        if _is_laudo_document(ex):
+            laudos.append((source, _score_psiquiatria(ex, pages)))
+
+    roles: Dict[str, str] = {}
+    for ex in extractions:
+        s = ex.get("source") or ""
+        roles[s] = "none"
+
+    if len(laudos) >= 2:
+        # escolhe 'segundo' pelo maior score; desempate pela ordem de aparição
+        segundo_source = sorted(enumerate(laudos), key=lambda it: (-it[1][1], it[0]))[0][1][0]
+        # 'principal' = primeiro laudo diferente do segundo na ordem original
+        principal_source = next((s for (s, _) in laudos if s != segundo_source), laudos[0][0])
+        roles[principal_source] = "principal"
+        roles[segundo_source] = "segundo"
+    elif len(laudos) == 1:
+        roles[laudos[0][0]] = "principal"
+
+    return roles
+
+
 def select_page_numbers_for_extraction(
     ocr_like: Dict[str, Any],
     selected_pages: Optional[List[int]],
@@ -262,12 +343,12 @@ def select_page_numbers_for_extraction(
     if selected_pages:
         return [pn for pn in selected_pages if pn in available]
 
-    total_pages = _get_total_pages(ocr_like)
-    if total_pages >= max(1, int(inss_min_total_pages)):
-        first_page_text = _get_page_text(ocr_like, 1)
-        if _contains_inss_keywords(first_page_text):
-            cap = max(1, int(inss_max_pages))
-            return [pn for pn in available if pn <= cap]
+    # Regra do INSS: se a página 1 indicar INSS, analise apenas as N primeiras páginas
+    # (default: 6). Não depende do total de páginas.
+    first_page_text = _get_page_text(ocr_like, 1)
+    if _contains_inss_keywords(first_page_text):
+        cap = max(1, int(inss_max_pages))
+        return [pn for pn in available if pn <= cap]
 
     return available
 
@@ -440,6 +521,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             print("Nenhuma extração válida foi encontrada em 'extractions'.", file=sys.stderr)
             return 3
 
+        # pré-calcula páginas selecionadas por documento (para heurísticas de papéis)
+        selected_pages_by_source: Dict[str, List[int]] = {}
         for ex_idx, ex in enumerate(extractions, start=1):
             source = ex.get("source") or f"extraction_{ex_idx}"
             page_numbers = select_page_numbers_for_extraction(
@@ -448,8 +531,29 @@ def main(argv: Optional[List[str]] = None) -> int:
                 args.inss_max_pages,
                 args.inss_min_total_pages,
             )
+            selected_pages_by_source[source] = page_numbers
+
+        laudo_roles_by_source = _assign_laudo_roles(extractions, selected_pages_by_source)
+
+        for ex_idx, ex in enumerate(extractions, start=1):
+            source = ex.get("source") or f"extraction_{ex_idx}"
+            page_numbers = selected_pages_by_source.get(source) or []
             if not page_numbers:
                 continue
+
+            # Regras de extração para dados pessoais:
+            # - dados pessoais do paciente/parte autora (qualificacao_parte_autora.*) devem vir EXCLUSIVAMENTE
+            #   do PDF do INSS, e especificamente das páginas que contêm "outorgante".
+            # - nunca usar "Horlando Braga Filho" como dados pessoais do paciente.
+            is_inss_doc = _is_inss_document(ex, args.inss_min_total_pages)
+            outorgante_pages = _find_pages_containing(ex, page_numbers, "outorgante") if is_inss_doc else []
+            # fallback para documentos onde a seção esteja rotulada de outra forma
+            if is_inss_doc and not outorgante_pages:
+                outorgante_pages = _find_pages_containing(ex, page_numbers, "procuração")
+            if is_inss_doc and not outorgante_pages:
+                outorgante_pages = _find_pages_containing(ex, page_numbers, "procuracao")
+
+            laudo_role = laudo_roles_by_source.get(source, "none")
 
             chunks = chunk_page_numbers(page_numbers, args.pages_per_call)
             if not chunks:
@@ -460,10 +564,57 @@ def main(argv: Optional[List[str]] = None) -> int:
                 if not chunk_text.strip():
                     continue
 
+                personal_data_policy = (
+                    "POLÍTICA DE DADOS PESSOAIS (OBRIGATÓRIA):\n"
+                    "- Os campos de 'qualificacao_parte_autora' (nome, nacionalidade, estado_civil, profissao, cpf, endereco_completo,\n"
+                    "  representante_legal_nome/cpf/rg) representam dados pessoais do paciente/parte autora.\n"
+                )
+                if is_inss_doc:
+                    personal_data_policy += (
+                        "- ESTE documento é o PDF do INSS.\n"
+                        f"- Extraia 'qualificacao_parte_autora' SOMENTE a partir da(s) página(s) que contém 'OUTORGANTE'. Páginas detectadas: {outorgante_pages or 'nenhuma'}.\n"
+                        "- Se não houver informação suficiente nessas páginas, retorne null (não adivinhe).\n"
+                        "- ATENÇÃO: pode haver nomes/CPFs de terceiros na procuração.\n"
+                        "  - Nunca use 'Horlando Braga Filho' (nem CPF/endereço dele) como dados pessoais do paciente/parte autora.\n"
+                        "  - Não confunda outorgante/outorgado com paciente. Só preencha representante_legal_* se o documento indicar explicitamente\n"
+                        "    que a pessoa é representante legal/responsável do paciente (pai/mãe/responsável legal), e ainda assim sem confundir com o paciente.\n"
+                    )
+                else:
+                    personal_data_policy += (
+                        "- ESTE documento NÃO é o PDF do INSS.\n"
+                        "- Portanto, retorne TODOS os campos de 'qualificacao_parte_autora' como null neste documento.\n"
+                        "  (ou seja: NÃO extraia nome/CPF/endereço do paciente daqui, mesmo que apareça no texto).\n"
+                    )
+
+                laudo_policy = (
+                    "POLÍTICA DOS LAUDOS (OBRIGATÓRIA):\n"
+                    "- Existem 2 laudos médicos distintos. Não misture médico/especialidade/datas/CIDs entre eles.\n"
+                )
+                if laudo_role == "principal":
+                    laudo_policy += (
+                        "- ESTE documento é o PRIMEIRO LAUDO (laudo_principal).\n"
+                        "- Preencha COMPLETAMENTE 'dados_medicos.laudo_principal' (incluindo nome_do_medico e especialidade_do_medico) e campos correlatos do laudo.\n"
+                        "- Retorne 'dados_medicos.laudo_psiquiatrico_segundo_laudo' como null (ou subcampos null).\n"
+                    )
+                elif laudo_role == "segundo":
+                    laudo_policy += (
+                        "- ESTE documento é o SEGUNDO LAUDO (laudo_psiquiatrico_segundo_laudo).\n"
+                        "- Preencha COMPLETAMENTE 'dados_medicos.laudo_psiquiatrico_segundo_laudo'.\n"
+                        "- Retorne 'dados_medicos.laudo_principal' como null (ou subcampos null).\n"
+                    )
+                else:
+                    laudo_policy += (
+                        "- ESTE documento não deve preencher campos de laudo, a menos que esteja claramente contido nele.\n"
+                        "- Se não for um dos 2 laudos, retorne ambos os blocos de laudo como null.\n"
+                    )
+
                 user_msg = (
                     f"Documento fonte: {source}\n"
-                    "Analise o texto a seguir e preencha os campos do schema. Retorne somente o JSON. "
-                    "Texto:\n" + chunk_text
+                    + "Analise o texto a seguir e preencha os campos do schema. Retorne somente o JSON.\n"
+                    + personal_data_policy
+                    + laudo_policy
+                    + "Texto:\n"
+                    + chunk_text
                 )
 
                 messages = [
@@ -512,6 +663,14 @@ def main(argv: Optional[List[str]] = None) -> int:
             print("Nenhuma página foi encontrada nos dados OCR para os filtros fornecidos.", file=sys.stderr)
             return 3
 
+        is_inss_doc = _is_inss_document(ocr, args.inss_min_total_pages)
+        outorgante_pages = _find_pages_containing(ocr, page_numbers, "outorgante") if is_inss_doc else []
+        # fallback para documentos onde a seção esteja rotulada de outra forma
+        if is_inss_doc and not outorgante_pages:
+            outorgante_pages = _find_pages_containing(ocr, page_numbers, "procuração")
+        if is_inss_doc and not outorgante_pages:
+            outorgante_pages = _find_pages_containing(ocr, page_numbers, "procuracao")
+
         chunks = chunk_page_numbers(page_numbers, args.pages_per_call)
         if not chunks:
             print("Não há páginas válidas para processar.", file=sys.stderr)
@@ -522,9 +681,33 @@ def main(argv: Optional[List[str]] = None) -> int:
             if not chunk_text.strip():
                 continue
 
+            personal_data_policy = (
+                "POLÍTICA DE DADOS PESSOAIS (OBRIGATÓRIA):\n"
+                "- Os campos de 'qualificacao_parte_autora' (nome, nacionalidade, estado_civil, profissao, cpf, endereco_completo,\n"
+                "  representante_legal_nome/cpf/rg) representam dados pessoais do paciente/parte autora.\n"
+            )
+            if is_inss_doc:
+                personal_data_policy += (
+                    "- ESTE documento é o PDF do INSS.\n"
+                    f"- Extraia 'qualificacao_parte_autora' SOMENTE a partir da(s) página(s) que contém 'OUTORGANTE'. Páginas detectadas: {outorgante_pages or 'nenhuma'}.\n"
+                    "- Se não houver informação suficiente nessas páginas, retorne null (não adivinhe).\n"
+                    "- ATENÇÃO: pode haver nomes/CPFs de terceiros na procuração.\n"
+                    "  - Nunca use 'Horlando Braga Filho' (nem CPF/endereço dele) como dados pessoais do paciente/parte autora.\n"
+                    "  - Não confunda outorgante/outorgado com paciente. Só preencha representante_legal_* se o documento indicar explicitamente\n"
+                    "    que a pessoa é representante legal/responsável do paciente (pai/mãe/responsável legal), e ainda assim sem confundir com o paciente.\n"
+                )
+            else:
+                personal_data_policy += (
+                    "- ESTE documento NÃO é o PDF do INSS.\n"
+                    "- Portanto, retorne TODOS os campos de 'qualificacao_parte_autora' como null neste documento.\n"
+                    "  (ou seja: NÃO extraia nome/CPF/endereço do paciente daqui, mesmo que apareça no texto).\n"
+                )
+
             user_msg = (
-                "Analise o texto a seguir e preencha os campos do schema. Retorne somente o JSON. "
-                "Texto:\n" + chunk_text
+                "Analise o texto a seguir e preencha os campos do schema. Retorne somente o JSON.\n"
+                + personal_data_policy
+                + "Texto:\n"
+                + chunk_text
             )
 
             messages = [

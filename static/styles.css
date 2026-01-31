@@ -136,7 +136,7 @@ input[type="file"]{
   .kv{grid-template-columns:1fr}
 }
 .k{color:var(--muted);font-family:var(--mono);font-size:12px}
-.v{color:var(--text)}
+.v{color:var(--text); white-space: pre-wrap}
 .details{margin-top:12px;border:1px solid var(--border);border-radius: 14px;padding:10px;background: rgba(0,0,0,.12)}
 .details summary{cursor:pointer;color:var(--muted);font-weight:700}
 pre.json{
