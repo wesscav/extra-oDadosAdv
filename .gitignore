@@ -5,6 +5,7 @@ __pycache__/
 venv
 .venv
 
+
 # Firebase service account keys (NEVER commit!)
 serviceAccountKey.json
 *serviceAccountKey*.json

@@ -37,7 +37,7 @@ except Exception:
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 
-DEFAULT_MODEL = "gpt-4-0613"
+DEFAULT_MODEL = "gpt-4o"  # Modelo mais recente e eficiente
 
 # Heurística para o "documento grande do INSS":
 # - se a página 1 contiver algum desses termos
@@ -50,6 +50,23 @@ INSS_KEYWORDS = [
     "INSS",
     "Instituto Nacional do Seguro Social"
 ]
+PERSONAL_DATA_HEADER = "CPF Nome Completo Data Nascimento Nome Completo da Mãe"
+PERSONAL_DATA_STOP_KEYWORDS = (
+    "procuradores",
+    "procurador",
+    "representantes legais",
+    "representante legal",
+    "procuração",
+    "procuracao",
+    "outorgante",
+    "outorgado",
+    "interessados",
+    PERSONAL_DATA_HEADER.lower(),
+)
+PERSONAL_DATA_STOP_KEYWORDS_NO_HEADER = tuple(
+    keyword for keyword in PERSONAL_DATA_STOP_KEYWORDS if keyword != PERSONAL_DATA_HEADER.lower()
+)
+PERSONAL_DATA_BLOCK_MAX_LINES = 6
 
 
 FUNCTION_SCHEMA = {
@@ -268,6 +285,59 @@ def _find_pages_containing(ocr_like: Dict[str, Any], pages: List[int], needle: s
     return hits
 
 
+def _find_interessados_pages(ocr_like: Dict[str, Any], pages: List[int]) -> List[int]:
+    """Encontra páginas que contêm a seção 'Interessados' com o cabeçalho da tabela de dados pessoais."""
+    hits: List[int] = []
+    for pn in pages:
+        txt = (_get_page_text(ocr_like, pn) or "").lower()
+        # Busca pela seção "Interessados" E pelo cabeçalho da tabela
+        if "interessados" in txt and "cpf" in txt and "nome completo" in txt and "data" in txt and "nascimento" in txt:
+            hits.append(pn)
+    return hits
+
+
+def _extract_personal_data_section(text: str) -> Optional[str]:
+    """Return the first block that follows the CPF Nome... header."""
+    if not text:
+        return None
+    lines = text.splitlines()
+    header_lower = PERSONAL_DATA_HEADER.lower()
+    for idx, line in enumerate(lines):
+        if header_lower in line.lower():
+            start = idx
+            if idx > 0 and "interessados" in lines[idx - 1].strip().lower():
+                start -= 1
+            collected: List[str] = []
+            for j in range(start, len(lines)):
+                current = lines[j]
+                stripped_lower = current.strip().lower()
+                if j > idx and any(keyword in stripped_lower for keyword in PERSONAL_DATA_STOP_KEYWORDS_NO_HEADER):
+                    break
+                collected.append(current)
+                if len(collected) >= PERSONAL_DATA_BLOCK_MAX_LINES:
+                    break
+            section = "\n".join(collected).strip()
+            return section or None
+    return None
+
+
+def _build_personal_data_hint(section: Optional[str], is_inss_doc: bool) -> str:
+    if not is_inss_doc:
+        return ""
+    header_desc = f"'{PERSONAL_DATA_HEADER}'"
+    if section:
+        snippet = textwrap.indent(section.strip(), "  ")
+        return (
+            f"- Seção {header_desc} detectada; use apenas esse bloco para preencher 'qualificacao_parte_autora' e ignore outros nomes (ex: Horlando Braga Filho).\n"
+            "```text\n"
+            f"{snippet}\n"
+            "```\n"
+        )
+    return (
+        f"- Não identifiquei nenhuma seção contendo {header_desc}. Retorne null para todos os campos de 'qualificacao_parte_autora'.\n"
+    )
+
+
 def _is_laudo_document(ocr_like: Dict[str, Any]) -> bool:
     """Heurística simples para detectar se é um laudo médico."""
     t1 = _get_page_text(ocr_like, 1).lower()
@@ -378,56 +448,76 @@ def call_openai_chat(model: str, messages: List[Dict[str, Any]], functions: List
     if not api_key:
         raise RuntimeError("OPENAI_API_KEY environment variable is not set")
 
-    openai.api_key = api_key
-
-    # Use ChatCompletion API with function calling
-    def _normalize_resp(obj: Any) -> Dict[str, Any]:
-        """Normalize OpenAI SDK response object to a plain dict."""
-        if isinstance(obj, dict):
-            return obj
-        # OpenAI OpenAIObject usually has to_dict()
-        try:
-            if hasattr(obj, "to_dict"):
-                return obj.to_dict()
-        except Exception:
-            pass
-        # Try to convert via JSON string
-        try:
-            return json.loads(str(obj))
-        except Exception:
-            # Fallback: expose minimal representation
-            return {"raw": str(obj)}
-
+    # Use new OpenAI SDK v1+ API (openai >= 1.0.0)
+    print(f"[OpenAI] Chamando API com modelo: {model}")
+    
     try:
-        # Old-style call (may raise APIRemovedInV1 on newer openai versions)
-        resp = openai.ChatCompletion.create(
+        # Convert functions to tools format (new API)
+        tools = [{"type": "function", "function": func} for func in functions]
+        
+        # Create client instance
+        client = openai.OpenAI(api_key=api_key)
+        
+        # Call chat completions with tools
+        resp = client.chat.completions.create(
             model=model,
             messages=messages,
-            functions=functions,
-            function_call="auto",
+            tools=tools,
+            tool_choice="auto",
             temperature=0,
             max_tokens=2000,
         )
-        return _normalize_resp(resp)
+        
+        print(f"[OpenAI] Chamada bem-sucedida")
+        
+        # Convert response to dict format compatible with old code
+        result = {
+            "id": resp.id,
+            "object": resp.object,
+            "created": resp.created,
+            "model": resp.model,
+            "choices": []
+        }
+        
+        for choice in resp.choices:
+            choice_dict = {
+                "index": choice.index,
+                "message": {
+                    "role": choice.message.role,
+                    "content": choice.message.content,
+                },
+                "finish_reason": choice.finish_reason
+            }
+            
+            # Handle tool calls (new format) -> convert to function_call (old format)
+            if choice.message.tool_calls:
+                tool_call = choice.message.tool_calls[0]  # Get first tool call
+                choice_dict["message"]["function_call"] = {
+                    "name": tool_call.function.name,
+                    "arguments": tool_call.function.arguments
+                }
+            
+            result["choices"].append(choice_dict)
+        
+        return result
+        
     except Exception as e:
-        # Detect removed API (new openai package uses nested namespaces)
         msg = str(e)
-        # Handle API removal or rate limit specifically to give clearer guidance
-        if "RateLimitError" in msg or (hasattr(e, "__class__") and e.__class__.__name__ == "RateLimitError"):
+        print(f"[OpenAI] Erro na chamada: {type(e).__name__}: {msg}")
+        
+        # Tenta extrair mais detalhes do erro
+        if hasattr(e, 'response'):
+            print(f"[OpenAI] Response do erro: {e.response}")
+        if hasattr(e, 'status_code'):
+            print(f"[OpenAI] Status code: {e.status_code}")
+        if hasattr(e, 'body'):
+            print(f"[OpenAI] Body do erro: {e.body}")
+        
+        # Handle rate limit
+        if "RateLimitError" in type(e).__name__:
             raise RuntimeError("Rate limit reached. Try again after a short wait, reduce request rate or check your account usage/quotas on platform.openai.com.")
-        if "APIRemovedInV1" in msg or (hasattr(e, "__class__") and e.__class__.__name__ == "APIRemovedInV1"):
-            # Try the new SDK call: openai.chat.completions.create
-            if hasattr(openai, "chat") and hasattr(openai.chat, "completions"):
-                resp = openai.chat.completions.create(
-                    model=model,
-                    messages=messages,
-                    functions=functions,
-                    function_call="auto",
-                    temperature=0,
-                    max_tokens=2000,
-                )
-                return _normalize_resp(resp)
-        # re-raise if we can't handle it
+        
+        # re-raise the original error
         raise
 
 
@@ -543,15 +633,10 @@ def main(argv: Optional[List[str]] = None) -> int:
 
             # Regras de extração para dados pessoais:
             # - dados pessoais do paciente/parte autora (qualificacao_parte_autora.*) devem vir EXCLUSIVAMENTE
-            #   do PDF do INSS, e especificamente das páginas que contêm "outorgante".
-            # - nunca usar "Horlando Braga Filho" como dados pessoais do paciente.
+            #   do PDF do INSS, e especificamente das páginas que contêm a seção "Interessados".
+            # - nunca usar "Horlando Braga Filho" ou dados de "Procuradores / Representantes Legais" como dados pessoais do paciente.
             is_inss_doc = _is_inss_document(ex, args.inss_min_total_pages)
-            outorgante_pages = _find_pages_containing(ex, page_numbers, "outorgante") if is_inss_doc else []
-            # fallback para documentos onde a seção esteja rotulada de outra forma
-            if is_inss_doc and not outorgante_pages:
-                outorgante_pages = _find_pages_containing(ex, page_numbers, "procuração")
-            if is_inss_doc and not outorgante_pages:
-                outorgante_pages = _find_pages_containing(ex, page_numbers, "procuracao")
+            interessados_pages = _find_interessados_pages(ex, page_numbers) if is_inss_doc else []
 
             laudo_role = laudo_roles_by_source.get(source, "none")
 
@@ -564,6 +649,9 @@ def main(argv: Optional[List[str]] = None) -> int:
                 if not chunk_text.strip():
                     continue
 
+                personal_data_section = _extract_personal_data_section(chunk_text)
+                personal_data_hint = _build_personal_data_hint(personal_data_section, is_inss_doc)
+
                 personal_data_policy = (
                     "POLÍTICA DE DADOS PESSOAIS (OBRIGATÓRIA):\n"
                     "- Os campos de 'qualificacao_parte_autora' (nome, nacionalidade, estado_civil, profissao, cpf, endereco_completo,\n"
@@ -572,12 +660,15 @@ def main(argv: Optional[List[str]] = None) -> int:
                 if is_inss_doc:
                     personal_data_policy += (
                         "- ESTE documento é o PDF do INSS.\n"
-                        f"- Extraia 'qualificacao_parte_autora' SOMENTE a partir da(s) página(s) que contém 'OUTORGANTE'. Páginas detectadas: {outorgante_pages or 'nenhuma'}.\n"
+                        f"- Extraia 'qualificacao_parte_autora' SOMENTE da seção 'INTERESSADOS' que contém o cabeçalho 'CPF Nome Completo Data Nascimento Nome Completo da Mãe'. Páginas detectadas: {interessados_pages or 'nenhuma'}.\n"
+                        "- Procure especificamente pela tabela com o cabeçalho: 'CPF Nome Completo Data Nascimento Nome Completo da Mãe'\n"
+                        "- Extraia APENAS os dados que aparecem IMEDIATAMENTE APÓS este cabeçalho na seção 'Interessados'.\n"
                         "- Se não houver informação suficiente nessas páginas, retorne null (não adivinhe).\n"
-                        "- ATENÇÃO: pode haver nomes/CPFs de terceiros na procuração.\n"
-                        "  - Nunca use 'Horlando Braga Filho' (nem CPF/endereço dele) como dados pessoais do paciente/parte autora.\n"
-                        "  - Não confunda outorgante/outorgado com paciente. Só preencha representante_legal_* se o documento indicar explicitamente\n"
-                        "    que a pessoa é representante legal/responsável do paciente (pai/mãe/responsável legal), e ainda assim sem confundir com o paciente.\n"
+                        "- ATENÇÃO CRÍTICA: NUNCA extraia dados da seção 'Procuradores / Representantes Legais'.\n"
+                        "  - IGNORE completamente 'Horlando Braga Filho' e seu CPF (028.951.113-59) - ele é o advogado/procurador, NÃO é o paciente.\n"
+                        "  - Se encontrar múltiplas tabelas com o mesmo cabeçalho, use APENAS a da seção 'Interessados', NÃO a de 'Procuradores'.\n"
+                        "  - Só preencha representante_legal_* se o documento indicar explicitamente que a pessoa é pai/mãe/responsável legal do paciente,\n"
+                        "    e ainda assim, certifique-se de que não está confundindo com dados da seção de procuradores.\n"
                     )
                 else:
                     personal_data_policy += (
@@ -612,6 +703,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                     f"Documento fonte: {source}\n"
                     + "Analise o texto a seguir e preencha os campos do schema. Retorne somente o JSON.\n"
                     + personal_data_policy
+                    + personal_data_hint
                     + laudo_policy
                     + "Texto:\n"
                     + chunk_text
@@ -664,12 +756,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             return 3
 
         is_inss_doc = _is_inss_document(ocr, args.inss_min_total_pages)
-        outorgante_pages = _find_pages_containing(ocr, page_numbers, "outorgante") if is_inss_doc else []
-        # fallback para documentos onde a seção esteja rotulada de outra forma
-        if is_inss_doc and not outorgante_pages:
-            outorgante_pages = _find_pages_containing(ocr, page_numbers, "procuração")
-        if is_inss_doc and not outorgante_pages:
-            outorgante_pages = _find_pages_containing(ocr, page_numbers, "procuracao")
+        interessados_pages = _find_interessados_pages(ocr, page_numbers) if is_inss_doc else []
 
         chunks = chunk_page_numbers(page_numbers, args.pages_per_call)
         if not chunks:
@@ -681,6 +768,9 @@ def main(argv: Optional[List[str]] = None) -> int:
             if not chunk_text.strip():
                 continue
 
+            personal_data_section = _extract_personal_data_section(chunk_text)
+            personal_data_hint = _build_personal_data_hint(personal_data_section, is_inss_doc)
+
             personal_data_policy = (
                 "POLÍTICA DE DADOS PESSOAIS (OBRIGATÓRIA):\n"
                 "- Os campos de 'qualificacao_parte_autora' (nome, nacionalidade, estado_civil, profissao, cpf, endereco_completo,\n"
@@ -689,12 +779,15 @@ def main(argv: Optional[List[str]] = None) -> int:
             if is_inss_doc:
                 personal_data_policy += (
                     "- ESTE documento é o PDF do INSS.\n"
-                    f"- Extraia 'qualificacao_parte_autora' SOMENTE a partir da(s) página(s) que contém 'OUTORGANTE'. Páginas detectadas: {outorgante_pages or 'nenhuma'}.\n"
+                    f"- Extraia 'qualificacao_parte_autora' SOMENTE da seção 'INTERESSADOS' que contém o cabeçalho 'CPF Nome Completo Data Nascimento Nome Completo da Mãe'. Páginas detectadas: {interessados_pages or 'nenhuma'}.\n"
+                    "- Procure especificamente pela tabela com o cabeçalho: 'CPF Nome Completo Data Nascimento Nome Completo da Mãe'\n"
+                    "- Extraia APENAS os dados que aparecem IMEDIATAMENTE APÓS este cabeçalho na seção 'Interessados'.\n"
                     "- Se não houver informação suficiente nessas páginas, retorne null (não adivinhe).\n"
-                    "- ATENÇÃO: pode haver nomes/CPFs de terceiros na procuração.\n"
-                    "  - Nunca use 'Horlando Braga Filho' (nem CPF/endereço dele) como dados pessoais do paciente/parte autora.\n"
-                    "  - Não confunda outorgante/outorgado com paciente. Só preencha representante_legal_* se o documento indicar explicitamente\n"
-                    "    que a pessoa é representante legal/responsável do paciente (pai/mãe/responsável legal), e ainda assim sem confundir com o paciente.\n"
+                    "- ATENÇÃO CRÍTICA: NUNCA extraia dados da seção 'Procuradores / Representantes Legais'.\n"
+                    "  - IGNORE completamente 'Horlando Braga Filho' e seu CPF (028.951.113-59) - ele é o advogado/procurador, NÃO é o paciente.\n"
+                    "  - Se encontrar múltiplas tabelas com o mesmo cabeçalho, use APENAS a da seção 'Interessados', NÃO a de 'Procuradores'.\n"
+                    "  - Só preencha representante_legal_* se o documento indicar explicitamente que a pessoa é pai/mãe/responsável legal do paciente,\n"
+                    "    e ainda assim, certifique-se de que não está confundindo com dados da seção de procuradores.\n"
                 )
             else:
                 personal_data_policy += (
@@ -706,6 +799,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             user_msg = (
                 "Analise o texto a seguir e preencha os campos do schema. Retorne somente o JSON.\n"
                 + personal_data_policy
+                + personal_data_hint
                 + "Texto:\n"
                 + chunk_text
             )

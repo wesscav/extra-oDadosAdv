@@ -7,13 +7,15 @@ import json
 import time
 import uuid
 import tempfile
+import threading
 from typing import Any, Dict, List, Optional, Tuple
+from enum import Enum
 
 import pdfplumber
 import pytesseract
 from pdf2image import convert_from_bytes
 from fastapi import Body, Depends, FastAPI, File, Header, HTTPException, UploadFile
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from docx import Document
@@ -44,6 +46,53 @@ _STORE_TTL_SECONDS = 60 * 30  # 30 minutos
 _ALWAYS_NACIONALIDADE = "brasileiro(a)"
 
 _FIREBASE_APP: Optional[firebase_admin.App] = None
+
+# Sistema de tarefas em background
+class TaskStatus(str, Enum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+class Task:
+    def __init__(self, task_id: str):
+        self.task_id = task_id
+        self.status = TaskStatus.PENDING
+        self.progress = 0
+        self.message = "Tarefa criada"
+        self.result = None
+        self.error = None
+        self.created_at = time.time()
+        self.updated_at = time.time()
+    
+    def update(self, status: Optional[TaskStatus] = None, progress: Optional[int] = None, 
+               message: Optional[str] = None, result: Optional[Any] = None, error: Optional[str] = None):
+        if status is not None:
+            self.status = status
+        if progress is not None:
+            self.progress = progress
+        if message is not None:
+            self.message = message
+        if result is not None:
+            self.result = result
+        if error is not None:
+            self.error = error
+        self.updated_at = time.time()
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "task_id": self.task_id,
+            "status": self.status,
+            "progress": self.progress,
+            "message": self.message,
+            "result": self.result,
+            "error": self.error,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+        }
+
+_TASKS: Dict[str, Task] = {}
+_TASKS_LOCK = threading.Lock()
 
 
 def _init_firebase_admin() -> firebase_admin.App:
@@ -79,12 +128,15 @@ def _init_firebase_admin() -> firebase_admin.App:
 def require_firebase_user(authorization: Optional[str] = Header(default=None)) -> Dict[str, Any]:
     """Dependency do FastAPI: exige Authorization: Bearer <idToken> e valida com firebase-admin."""
     if not authorization or not isinstance(authorization, str):
+        print("[AUTH] Cabeçalho Authorization ausente ou inválido")
         raise HTTPException(status_code=401, detail="Não autenticado. Envie Authorization: Bearer <idToken>.")
     if not authorization.lower().startswith("bearer "):
+        print(f"[AUTH] Cabeçalho Authorization não começa com 'Bearer ': {authorization[:20]}...")
         raise HTTPException(status_code=401, detail="Cabeçalho Authorization inválido. Use Bearer <idToken>.")
 
     token = authorization.split(" ", 1)[1].strip()
     if not token:
+        print("[AUTH] Token vazio após split")
         raise HTTPException(status_code=401, detail="Token ausente. Use Authorization: Bearer <idToken>.")
 
     try:
@@ -92,9 +144,13 @@ def require_firebase_user(authorization: Optional[str] = Header(default=None)) -
         check_revoked = os.environ.get("FIREBASE_CHECK_REVOKED", "").strip() in ("1", "true", "yes", "on")
         decoded = firebase_auth.verify_id_token(token, check_revoked=check_revoked)
         if not isinstance(decoded, dict) or not decoded.get("uid"):
+            print("[AUTH] Token decodificado mas sem uid válido")
             raise ValueError("Decoded token inválido.")
+        print(f"[AUTH] Token válido para usuário: {decoded.get('email', decoded.get('uid'))}")
         return decoded
-    except Exception:
+    except Exception as e:
+        # Log do erro real (para debug do servidor, não para o cliente)
+        print(f"[AUTH] Erro ao validar token: {type(e).__name__}: {str(e)}")
         # não vaza detalhes de validação/credencial para o cliente
         raise HTTPException(status_code=401, detail="Sessão inválida ou expirada. Faça login novamente.")
 
@@ -104,6 +160,14 @@ def _cleanup_store() -> None:
     expired = [k for k, v in _STORE.items() if (now - float(v.get("created_at", now))) > _STORE_TTL_SECONDS]
     for k in expired:
         _STORE.pop(k, None)
+
+def _cleanup_tasks() -> None:
+    """Remove tarefas antigas (mais de 1 hora)."""
+    now = time.time()
+    with _TASKS_LOCK:
+        expired = [k for k, task in _TASKS.items() if (now - task.created_at) > 3600]
+        for k in expired:
+            _TASKS.pop(k, None)
 
 
 def _force_brazilian_nationality(structured: Dict[str, Any]) -> Dict[str, Any]:
@@ -120,14 +184,183 @@ def _force_brazilian_nationality(structured: Dict[str, Any]) -> Dict[str, Any]:
     return structured
 
 
-def _lowercase_strings(obj: Any) -> Any:
-    """Converte recursivamente valores string para minúsculas (best-effort)."""
+def _capitalize_name(name: str) -> str:
+    """Capitaliza nomes próprios corretamente (primeira letra de cada palavra maiúscula)."""
+    if not name or not isinstance(name, str):
+        return name
+    
+    # Lista de preposições e artigos que devem ficar em minúscula (exceto se forem a primeira palavra)
+    lowercase_words = {'da', 'de', 'do', 'das', 'dos', 'e', 'em', 'na', 'no', 'a', 'o'}
+    
+    words = name.strip().split()
+    result = []
+    
+    for i, word in enumerate(words):
+        # Primeira palavra sempre capitalizada
+        if i == 0:
+            result.append(word.capitalize())
+        # Preposições e artigos em minúscula
+        elif word.lower() in lowercase_words:
+            result.append(word.lower())
+        # Outras palavras capitalizadas
+        else:
+            result.append(word.capitalize())
+    
+    return ' '.join(result)
+
+
+def _format_cpf(cpf: str) -> str:
+    """Formata CPF para XXX.XXX.XXX-XX."""
+    if not cpf or not isinstance(cpf, str):
+        return cpf
+    
+    # Remove tudo que não é dígito
+    digits = ''.join(c for c in cpf if c.isdigit())
+    
+    # Se não tem 11 dígitos, retorna original
+    if len(digits) != 11:
+        return cpf
+    
+    # Formata XXX.XXX.XXX-XX
+    return f"{digits[:3]}.{digits[3:6]}.{digits[6:9]}-{digits[9:]}"
+
+
+def _format_cid(cid: str) -> str:
+    """Formata CID para garantir formato CID-XX ou CID-XX.X."""
+    if not cid or not isinstance(cid, str):
+        return cid
+    
+    cid = cid.strip().upper()
+    
+    # Se já começa com CID, retorna normalizado
+    if cid.startswith('CID'):
+        # Remove espaços extras e normaliza
+        cid = cid.replace('CID', 'CID-').replace('--', '-').replace(' ', '')
+        return cid
+    
+    # Se é só o código (ex: F84.0), adiciona CID-
+    if len(cid) >= 3 and cid[0].isalpha():
+        return f"CID-{cid}"
+    
+    return cid
+
+
+def _capitalize_medical_term(term: str) -> str:
+    """Capitaliza termos médicos/especialidades (primeira letra de cada palavra importante)."""
+    if not term or not isinstance(term, str):
+        return term
+    
+    # Lista de palavras que devem ficar em minúscula
+    lowercase_words = {'de', 'da', 'do', 'das', 'dos', 'e', 'em', 'na', 'no', 'a', 'o', 'com', 'por'}
+    
+    # Exceções: siglas médicas que devem ficar maiúsculas
+    uppercase_terms = {'tea', 'tdah', 'toc', 'tpt', 'tag'}
+    
+    words = term.strip().split()
+    result = []
+    
+    for i, word in enumerate(words):
+        word_lower = word.lower()
+        
+        # Primeira palavra sempre capitalizada
+        if i == 0:
+            if word_lower in uppercase_terms:
+                result.append(word.upper())
+            else:
+                result.append(word.capitalize())
+        # Siglas em maiúscula
+        elif word_lower in uppercase_terms:
+            result.append(word.upper())
+        # Preposições em minúscula
+        elif word_lower in lowercase_words:
+            result.append(word_lower)
+        # Outras palavras capitalizadas
+        else:
+            result.append(word.capitalize())
+    
+    return ' '.join(result)
+
+
+def _get_field_type(path: List[str]) -> str:
+    """Determina o tipo de formatação necessária para um campo."""
+    if not path:
+        return 'lowercase'
+    
+    last = path[-1]
+    
+    # Nomes próprios (pessoas)
+    name_fields = {
+        'nome',
+        'representante_legal_nome',
+        'nome_do_medico',
+        'nome_medico',
+        'primeiro_nome_do_autor',
+        'nome_avo',
+    }
+    
+    # Endereços
+    address_fields = {
+        'endereco_completo',
+    }
+    
+    # CPF/RG
+    cpf_fields = {
+        'cpf',
+        'representante_legal_cpf',
+    }
+    
+    # CID
+    cid_fields = {
+        'CID_da_doenca',
+        'cid',
+    }
+    
+    # Especialidades médicas, deficiências, medicamentos
+    medical_fields = {
+        'especialidade_do_medico',
+        'deficiencia_constatada',
+        'deficiencia_e_CID',
+        'deficiencia_associada_e_CID',
+        'medicamento_prescrito',
+    }
+    
+    if last in name_fields or last in address_fields:
+        return 'name'
+    elif last in cpf_fields:
+        return 'cpf'
+    elif last in cid_fields:
+        return 'cid'
+    elif last in medical_fields:
+        return 'medical'
+    else:
+        return 'lowercase'
+
+
+def _process_strings(obj: Any, path: List[str] = None) -> Any:
+    """Processa strings recursivamente: formata nomes, CPF, CID, termos médicos, etc."""
+    if path is None:
+        path = []
+    
     if isinstance(obj, str):
-        return obj.lower()
+        field_type = _get_field_type(path)
+        
+        if field_type == 'name':
+            return _capitalize_name(obj)
+        elif field_type == 'cpf':
+            return _format_cpf(obj)
+        elif field_type == 'cid':
+            return _format_cid(obj)
+        elif field_type == 'medical':
+            return _capitalize_medical_term(obj)
+        else:
+            return obj.lower()
+    
     if isinstance(obj, list):
-        return [_lowercase_strings(v) for v in obj]
+        return [_process_strings(v, path) for v in obj]
+    
     if isinstance(obj, dict):
-        return {k: _lowercase_strings(v) for k, v in obj.items()}
+        return {k: _process_strings(v, path + [k]) for k, v in obj.items()}
+    
     return obj
 
 def _configure_ocr() -> Dict[str, Optional[str]]:
@@ -241,6 +474,93 @@ def _summarize_structured(structured: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def _process_extraction_background(
+    task_id: str,
+    file_contents: List[Tuple[bytes, str]],
+    model: str,
+    pages_per_call: int,
+    delay_between_calls: float,
+    inss_max_pages: int,
+    inss_min_total_pages: int,
+    ocr_lang: str,
+    ocr_min_chars: int,
+    ocr_dpi: int,
+) -> None:
+    """Processa a extração em background e atualiza o status da tarefa."""
+    task = _TASKS.get(task_id)
+    if not task:
+        return
+    
+    try:
+        task.update(status=TaskStatus.PROCESSING, progress=10, message="Extraindo texto dos PDFs...")
+        
+        # Extrai texto dos PDFs
+        extractions: List[Dict[str, Any]] = []
+        for i, (content, filename) in enumerate(file_contents):
+            task.update(progress=10 + (i * 20 // len(file_contents)), 
+                       message=f"Extraindo texto de {filename}...")
+            extractions.append(
+                extract_pdf_hybrid_text(
+                    content,
+                    filename,
+                    ocr_lang=ocr_lang,
+                    ocr_min_chars=ocr_min_chars,
+                    ocr_dpi=ocr_dpi,
+                )
+            )
+        
+        task.update(progress=30, message="Analisando documentos com IA...")
+        
+        # Analisa com OpenAI
+        structured, per_doc = analyze_extractions_with_openai(
+            extractions=extractions,
+            model=model,
+            pages_per_call=pages_per_call,
+            delay_between_calls=delay_between_calls,
+            inss_max_pages=inss_max_pages,
+            inss_min_total_pages=inss_min_total_pages,
+            task=task,  # passa a task para atualizar progresso
+        )
+        
+        if not structured:
+            task.update(status=TaskStatus.FAILED, progress=100, 
+                       error="A API não retornou nenhum conteúdo estruturado.")
+            return
+        
+        task.update(progress=95, message="Finalizando...")
+        
+        structured = _force_brazilian_nationality(structured)
+        structured = _process_strings(structured)
+        
+        token = str(uuid.uuid4())
+        _STORE[token] = {"created_at": time.time(), "structured": structured}
+        
+        result = {
+            "token": token,
+            "per_document": per_doc,
+            "summary": _summarize_structured(structured),
+            "structured": structured,
+        }
+        
+        task.update(status=TaskStatus.COMPLETED, progress=100, 
+                   message="Extração concluída com sucesso!", result=result)
+        
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"[TASK {task_id}] Erro ao processar: {type(e).__name__}: {str(e)}")
+        print(f"[TASK {task_id}] Traceback completo:\n{error_details}")
+        
+        # Tenta extrair mais detalhes do erro OpenAI
+        error_message = str(e)
+        if hasattr(e, '__cause__') and e.__cause__:
+            error_message += f" | Causa: {str(e.__cause__)}"
+        if hasattr(e, 'response') and e.response:
+            error_message += f" | Response: {e.response}"
+        
+        task.update(status=TaskStatus.FAILED, progress=100, 
+                   error=error_message, message="Erro ao processar documentos")
+
 def analyze_extractions_with_openai(
     extractions: List[Dict[str, Any]],
     model: str,
@@ -248,6 +568,7 @@ def analyze_extractions_with_openai(
     delay_between_calls: float,
     inss_max_pages: int,
     inss_min_total_pages: int,
+    task: Optional[Task] = None,
 ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
     """Roda a etapa de estruturação (OpenAI) por documento, retornando resultado + metadados por doc."""
     system_msg = (
@@ -352,6 +673,11 @@ def analyze_extractions_with_openai(
 
         chunks = [page_numbers] if pages_per_call <= 0 else [page_numbers[i : i + pages_per_call] for i in range(0, len(page_numbers), pages_per_call)]
         for chunk_idx, chunk in enumerate(chunks):
+            # Atualiza progresso se task foi fornecida
+            if task:
+                progress = 30 + int((ex_idx - 1) / len(extractions) * 65 + (chunk_idx / len(chunks)) * (65 / len(extractions)))
+                task.update(progress=progress, message=f"Analisando {source} (parte {chunk_idx + 1}/{len(chunks)})...")
+            
             chunk_text = build_text_from_ocr(ex, pages=chunk)
             if not chunk_text.strip():
                 continue
@@ -485,54 +811,65 @@ async def api_extract(
     ocr_dpi: int = 300,
 ) -> Dict[str, Any]:
     _cleanup_store()
+    _cleanup_tasks()
 
     if len(files) != 4:
         raise HTTPException(status_code=400, detail="Envie exatamente 4 arquivos PDF.")
 
-    extractions: List[Dict[str, Any]] = []
+    # Valida e lê os arquivos
+    file_contents: List[Tuple[bytes, str]] = []
     for f in files:
         if not (f.filename or "").lower().endswith(".pdf"):
             raise HTTPException(status_code=400, detail=f"Arquivo não é PDF: {f.filename}")
         content = await f.read()
         if not content:
             raise HTTPException(status_code=400, detail=f"Arquivo vazio: {f.filename}")
-        extractions.append(
-            extract_pdf_hybrid_text(
-                content,
-                f.filename or "documento.pdf",
-                ocr_lang=ocr_lang,
-                ocr_min_chars=ocr_min_chars,
-                ocr_dpi=ocr_dpi,
-            )
-        )
+        file_contents.append((content, f.filename or "documento.pdf"))
 
-    try:
-        structured, per_doc = analyze_extractions_with_openai(
-            extractions=extractions,
-            model=model,
-            pages_per_call=pages_per_call,
-            delay_between_calls=delay_between_calls,
-            inss_max_pages=inss_max_pages,
-            inss_min_total_pages=inss_min_total_pages,
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    # Cria uma tarefa e inicia processamento em background
+    task_id = str(uuid.uuid4())
+    task = Task(task_id)
+    
+    with _TASKS_LOCK:
+        _TASKS[task_id] = task
+    
+    # Inicia thread de processamento
+    thread = threading.Thread(
+        target=_process_extraction_background,
+        args=(
+            task_id,
+            file_contents,
+            model,
+            pages_per_call,
+            delay_between_calls,
+            inss_max_pages,
+            inss_min_total_pages,
+            ocr_lang,
+            ocr_min_chars,
+            ocr_dpi,
+        ),
+        daemon=True,
+    )
+    thread.start()
+    
+    return {"task_id": task_id, "message": "Processamento iniciado. Use /api/task/{task_id} para verificar o status."}
 
-    if not structured:
-        raise HTTPException(status_code=500, detail="A API não retornou nenhum conteúdo estruturado.")
 
-    structured = _force_brazilian_nationality(structured)
-    structured = _lowercase_strings(structured)
-
-    token = str(uuid.uuid4())
-    _STORE[token] = {"created_at": time.time(), "structured": structured}
-
-    return {
-        "token": token,
-        "per_document": per_doc,
-        "summary": _summarize_structured(structured),
-        "structured": structured,
-    }
+@app.get("/api/task/{task_id}")
+def api_get_task_status(
+    task_id: str,
+    _user: Dict[str, Any] = Depends(require_firebase_user),
+) -> Dict[str, Any]:
+    """Retorna o status de uma tarefa em background."""
+    _cleanup_tasks()
+    
+    with _TASKS_LOCK:
+        task = _TASKS.get(task_id)
+    
+    if not task:
+        raise HTTPException(status_code=404, detail="Tarefa não encontrada ou expirada.")
+    
+    return task.to_dict()
 
 
 @app.post("/api/generate-docx")
@@ -559,7 +896,7 @@ def api_generate_docx(
             raise HTTPException(status_code=500, detail="Conteúdo estruturado inválido no servidor.")
 
     structured = _force_brazilian_nationality(structured)
-    structured = _lowercase_strings(structured)
+    structured = _process_strings(structured)
 
     out_path = generate_docx_from_structured(structured, TEMPLATE_PATH)
     # opcional: invalidar token após uso (evita reuso)
