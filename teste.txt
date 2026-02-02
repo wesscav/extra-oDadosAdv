@@ -1,0 +1,8 @@
+python scripts/create_firebase_user.py \
+  --email gomesvinicius54798@gmail.com \
+  --password 123456 \
+  --display-name "Vinicius"
+
+
+mash, a unica coisa que tá fudendo é a parte de dados pessoais, as vezes ele nn identifica nada e os dados do responsavel
+ legal ele tá pegando o do horlando
