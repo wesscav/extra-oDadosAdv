@@ -60,7 +60,7 @@ Interface web (upload de 4 PDFs + confirmação + geração de DOCX)
 ---------------------------------------------------------------
 
 Foi adicionado um servidor web simples que:
-- recebe **exatamente 4 PDFs** por upload
+- recebe **4 PDFs** por upload
 - faz a extração (pdfplumber com fallback OCR) + análise (OpenAI)
 - mostra um **modal de confirmação** com o resumo e o JSON estruturado
 - após confirmar, gera e baixa o **`.docx`** preenchido com o `template.docx`
@@ -68,60 +68,6 @@ Foi adicionado um servidor web simples que:
 Requisitos:
 - Python 3
 - `OPENAI_API_KEY` no ambiente ou em `.env`
-- **Autenticação via Firebase** (Frontend) e validação de `idToken` no backend via `firebase-admin`
-
-### Configuração do Firebase no backend (OBRIGATÓRIO)
-
-As rotas `/api/extract` e `/api/generate-docx` **estão protegidas** e exigem autenticação.
-
-O backend espera `Authorization: Bearer <idToken>` e valida com `firebase-admin`.
-
-**Opção 1: Service Account Key (recomendado para produção)**
-
-1. Baixe o arquivo `serviceAccountKey.json` do Firebase Console:
-   - Acesse: https://console.firebase.google.com/
-   - Project Settings > Service Accounts > Generate New Private Key
-   
-2. Configure a variável de ambiente:
-   ```bash
-   # Windows (PowerShell)
-   $env:FIREBASE_SERVICE_ACCOUNT_JSON="C:\caminho\para\serviceAccountKey.json"
-   
-   # Linux/Mac
-   export FIREBASE_SERVICE_ACCOUNT_JSON="/caminho/para/serviceAccountKey.json"
-   ```
-
-**Opção 2: JSON inline (para testes/desenvolvimento)**
-
-```bash
-# Windows (PowerShell) - escape as aspas duplas
-$env:FIREBASE_SERVICE_ACCOUNT='{"type":"service_account","project_id":"horlandobraga-168fc",...}'
-
-# Linux/Mac
-export FIREBASE_SERVICE_ACCOUNT='{"type":"service_account","project_id":"horlandobraga-168fc",...}'
-```
-
-**Opção 3: Google Application Default Credentials (ADC)**
-
-```bash
-export GOOGLE_APPLICATION_CREDENTIALS="/caminho/para/serviceAccountKey.json"
-```
-
-**Variáveis opcionais:**
-- `FIREBASE_PROJECT_ID="horlandobraga-168fc"` (útil se não usar service account completo)
-- `FIREBASE_CHECK_REVOKED=1` (valida se o token foi revogado - adiciona latência)
-
-### Configuração do Firebase no frontend (já configurado)
-
-O arquivo `static/app.js` já está configurado com as credenciais do projeto:
-- **Project ID**: `horlandobraga-168fc`
-- **API Key**: `AIzaSyC5H6J8XkBAyiuv1wHCQMNVuxX1JnBU568`
-
-**IMPORTANTE**: Você precisa criar usuários no Firebase Authentication:
-1. Acesse: https://console.firebase.google.com/project/horlandobraga-168fc/authentication/users
-2. Clique em "Add user"
-3. Crie usuários com e-mail e senha
-4. Use essas credenciais para fazer login na interface web
 
 Instalar dependências:
 
@@ -137,5 +83,4 @@ uvicorn server:app --reload
 
 Abrir no navegador:
 - `http://127.0.0.1:8000/`
-- Faça login com um usuário criado no Firebase Authentication
-- Após o login, você poderá fazer upload dos 4 PDFs
+

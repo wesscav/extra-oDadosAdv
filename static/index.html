@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Extração de dados (PDF → DOCX)</title>
     <link rel="icon" type="image/png" href="/static/imgs/flavicon horlando.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
@@ -13,21 +16,34 @@
         <div class="header-content">
           <div>
             <h1>Extração de dados</h1>
-            <p>Envie <strong>4 PDFs</strong>. Vamos extrair, mostrar um resumo para você confirmar, e então gerar o <strong>.docx</strong>.</p>
           </div>
-          <button class="btn btn-ghost" type="button" id="logoutBtn">Sair</button>
+          <button class="logout-icon-btn" type="button" id="logoutBtn" aria-label="Sair" title="Sair">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path fill="currentColor" d="M10 17v-2h4v-6h-4V7l-5 5 5 5zm-7 4q-.825 0-1.413-.588T1 19V5q0-.825.588-1.413T3 3h8v2H3v14h8v2H3zm14-4l-1.4-1.4L17.2 14H9v-2h8.2l-1.6-1.6L17 9l5 5-5 5z"/>
+            </svg>
+          </button>
         </div>
       </header>
 
       <section class="card">
         <form id="uploadForm">
-          <label class="label" for="files">Selecione 4 arquivos PDF</label>
-          <input id="files" name="files" type="file" accept="application/pdf" multiple required />
+          <label class="label" for="files">Selecione os arquivos</label>
+          <div
+            class="dropzone"
+            id="dropzone"
+            role="button"
+            tabindex="0"
+            aria-describedby="fileHelp"
+            aria-label="Arraste e solte os arquivos PDF aqui, ou clique para selecionar"
+          >
+            <div class="dropzone-title">Arraste e solte os PDFs aqui</div>
+            <div class="dropzone-subtitle">ou clique para selecionar</div>
+          </div>
+          <input class="file-input-hidden" id="files" name="files" type="file" accept="application/pdf" multiple required />
           <div class="help" id="fileHelp">Nenhum arquivo selecionado.</div>
 
           <div class="row">
             <button class="btn btn-primary" type="submit" id="submitBtn">Extrair e resumir</button>
-            <button class="btn btn-ghost" type="button" id="clearBtn">Limpar</button>
           </div>
 
           <div class="status" id="status"></div>
@@ -47,11 +63,6 @@
 
           <h3>Resumo</h3>
           <div class="summary" id="summary"></div>
-
-          <details class="details">
-            <summary>Ver JSON completo (estruturado)</summary>
-            <pre class="json" id="structuredJson"></pre>
-          </details>
         </div>
 
         <div class="modal-footer">

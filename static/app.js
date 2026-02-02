@@ -18,9 +18,9 @@ const auth = getAuth(firebaseApp);
 const els = {
   form: document.getElementById("uploadForm"),
   files: document.getElementById("files"),
+  dropzone: document.getElementById("dropzone"),
   fileHelp: document.getElementById("fileHelp"),
   submitBtn: document.getElementById("submitBtn"),
-  clearBtn: document.getElementById("clearBtn"),
   status: document.getElementById("status"),
 
   logoutBtn: document.getElementById("logoutBtn"),
@@ -32,7 +32,6 @@ const els = {
 
   perDocInfo: document.getElementById("perDocInfo"),
   summary: document.getElementById("summary"),
-  structuredJson: document.getElementById("structuredJson"),
 };
 
 let currentUser = null;
@@ -102,6 +101,13 @@ function openModal() {
 function closeModal() {
   els.modalBackdrop.classList.add("hidden");
   els.modalBackdrop.setAttribute("aria-hidden", "true");
+}
+
+function autosizeTextarea(el) {
+  if (!el || el.tagName?.toLowerCase() !== "textarea") return;
+  // reseta e recalcula para caber TODO o conteúdo (sem scroll interno)
+  el.style.height = "auto";
+  el.style.height = `${el.scrollHeight}px`;
 }
 
 async function authHeaders(extraHeaders = {}) {
@@ -225,6 +231,9 @@ function renderSummaryFromStructured(structured) {
     const kv = document.createElement("div");
     kv.className = "kv";
     for (const [label, path] of fields) {
+      const field = document.createElement("div");
+      field.className = "field";
+
       const k = document.createElement("div");
       k.className = "k";
       k.textContent = label;
@@ -248,10 +257,15 @@ function renderSummaryFromStructured(structured) {
 
       v.addEventListener("input", () => {
         setDeep(structured, path, v.value);
-        els.structuredJson.textContent = JSON.stringify(structuredDraft || structured, null, 2);
+        autosizeTextarea(v);
       });
-      kv.appendChild(k);
-      kv.appendChild(v);
+
+      // ajusta altura inicial para textareas (após value set)
+      requestAnimationFrame(() => autosizeTextarea(v));
+
+      field.appendChild(k);
+      field.appendChild(v);
+      kv.appendChild(field);
     }
     block.appendChild(kv);
     els.summary.appendChild(block);
@@ -264,17 +278,66 @@ function updateFileHelp() {
     els.fileHelp.textContent = "Nenhum arquivo selecionado.";
     return;
   }
-  const lines = files.map((f, i) => `${i + 1}. ${f.name} (${Math.round(f.size / 1024)} KB)`);
+  const lines = files.map((f, i) => `${i + 1}. ${f.name}`);
   els.fileHelp.textContent = `${files.length} arquivo(s):\n` + lines.join(" | ");
 }
 
 els.files.addEventListener("change", updateFileHelp);
 
-els.clearBtn.addEventListener("click", () => {
-  els.files.value = "";
+function setDropzoneActive(active) {
+  if (!els.dropzone) return;
+  els.dropzone.classList.toggle("is-dragover", !!active);
+}
+
+function setFilesFromList(fileList) {
+  const incoming = Array.from(fileList || []).filter((f) => f && typeof f.name === "string");
+  if (!incoming.length) return;
+
+  const onlyPdfs = incoming.filter((f) => f.name.toLowerCase().endsWith(".pdf"));
+  if (onlyPdfs.length !== incoming.length) {
+    setStatus("Alguns arquivos foram ignorados (apenas PDF é aceito).", "error");
+  } else {
+    setStatus("");
+  }
+
+  // Limita ao que o usuário escolheu/soltou; validação final (4 PDFs) continua no submit.
+  const selected = onlyPdfs;
+  try {
+    const dt = new DataTransfer();
+    for (const f of selected) dt.items.add(f);
+    els.files.files = dt.files;
+  } catch {
+    // fallback: se o navegador não permitir programaticamente, mantemos o input como está
+    setStatus("Seu navegador não permite arrastar e soltar aqui. Clique para selecionar os arquivos.", "error");
+    return;
+  }
   updateFileHelp();
-  setStatus("");
-});
+}
+
+if (els.dropzone) {
+  els.dropzone.addEventListener("click", () => els.files?.click());
+  els.dropzone.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      els.files?.click();
+    }
+  });
+  els.dropzone.addEventListener("dragenter", (e) => {
+    e.preventDefault();
+    setDropzoneActive(true);
+  });
+  els.dropzone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+    setDropzoneActive(true);
+  });
+  els.dropzone.addEventListener("dragleave", () => setDropzoneActive(false));
+  els.dropzone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    setDropzoneActive(false);
+    setFilesFromList(e.dataTransfer?.files);
+  });
+}
 
 els.closeModalBtn.addEventListener("click", closeModal);
 els.cancelBtn.addEventListener("click", closeModal);
@@ -318,7 +381,6 @@ els.form.addEventListener("submit", async (e) => {
   }
 
   els.submitBtn.disabled = true;
-  els.clearBtn.disabled = true;
   setStatus("Extraindo e analisando... isso pode levar alguns minutos, dependendo do tamanho dos PDFs.");
 
   try {
@@ -337,7 +399,6 @@ els.form.addEventListener("submit", async (e) => {
     structuredDraft = ensureDefaults(deepClone(data.structured || {}));
     renderPerDocInfo(data.per_document || []);
     renderSummaryFromStructured(structuredDraft);
-    els.structuredJson.textContent = JSON.stringify(structuredDraft || {}, null, 2);
 
     setStatus("Resumo pronto. Confirme no modal para gerar o DOCX.", "ok");
     openModal();
@@ -345,7 +406,6 @@ els.form.addEventListener("submit", async (e) => {
     setStatus(err?.message || String(err), "error");
   } finally {
     els.submitBtn.disabled = false;
-    els.clearBtn.disabled = false;
   }
 });
 
