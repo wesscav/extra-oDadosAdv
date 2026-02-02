@@ -1,3 +1,20 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+
+// Firebase JS SDK v7.20.0+ (measurementId opcional)
+const firebaseConfig = {
+  apiKey: "AIzaSyC5H6J8XkBAyiuv1wHCQMNVuxX1JnBU568",
+  authDomain: "horlandobraga-168fc.firebaseapp.com",
+  projectId: "horlandobraga-168fc",
+  storageBucket: "horlandobraga-168fc.firebasestorage.app",
+  messagingSenderId: "405988871259",
+  appId: "1:405988871259:web:ff0ef83ba7e118d19b837e",
+  measurementId: "G-H024RSDR79",
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const auth = getAuth(firebaseApp);
+
 const els = {
   form: document.getElementById("uploadForm"),
   files: document.getElementById("files"),
@@ -5,6 +22,8 @@ const els = {
   submitBtn: document.getElementById("submitBtn"),
   clearBtn: document.getElementById("clearBtn"),
   status: document.getElementById("status"),
+
+  logoutBtn: document.getElementById("logoutBtn"),
 
   modalBackdrop: document.getElementById("modalBackdrop"),
   closeModalBtn: document.getElementById("closeModalBtn"),
@@ -16,6 +35,7 @@ const els = {
   structuredJson: document.getElementById("structuredJson"),
 };
 
+let currentUser = null;
 let currentToken = null;
 let structuredDraft = null;
 
@@ -82,6 +102,12 @@ function openModal() {
 function closeModal() {
   els.modalBackdrop.classList.add("hidden");
   els.modalBackdrop.setAttribute("aria-hidden", "true");
+}
+
+async function authHeaders(extraHeaders = {}) {
+  if (!currentUser) throw new Error("Você precisa estar logado.");
+  const idToken = await currentUser.getIdToken();
+  return { ...extraHeaders, Authorization: `Bearer ${idToken}` };
 }
 
 function renderPerDocInfo(perDocument = []) {
@@ -253,9 +279,33 @@ els.clearBtn.addEventListener("click", () => {
 els.closeModalBtn.addEventListener("click", closeModal);
 els.cancelBtn.addEventListener("click", closeModal);
 
+els.logoutBtn.addEventListener("click", async () => {
+  try {
+    await signOut(auth);
+    window.location.href = "/login";
+  } catch (err) {
+    setStatus(err?.message || "Falha ao sair.", "error");
+  }
+});
+
+onAuthStateChanged(auth, (user) => {
+  currentUser = user || null;
+  
+  // If not logged in, redirect to login page
+  if (!currentUser) {
+    window.location.href = "/login";
+  }
+});
+
 els.form.addEventListener("submit", async (e) => {
   e.preventDefault();
   setStatus("");
+
+  if (!currentUser) {
+    setStatus("Faça login para continuar.", "error");
+    window.location.href = "/login";
+    return;
+  }
 
   const files = els.files.files ? Array.from(els.files.files) : [];
   if (files.length !== 4) {
@@ -275,7 +325,11 @@ els.form.addEventListener("submit", async (e) => {
     const fd = new FormData();
     for (const f of files) fd.append("files", f, f.name);
 
-    const resp = await fetch("/api/extract", { method: "POST", body: fd });
+    const resp = await fetch("/api/extract", {
+      method: "POST",
+      body: fd,
+      headers: await authHeaders(),
+    });
     const data = await resp.json().catch(() => ({}));
     if (!resp.ok) throw new Error(data?.detail || "Falha na extração.");
 
@@ -301,6 +355,12 @@ els.confirmBtn.addEventListener("click", async () => {
     closeModal();
     return;
   }
+  if (!currentUser) {
+    setStatus("Sessão expirada. Faça login novamente.", "error");
+    closeModal();
+    window.location.href = "/login";
+    return;
+  }
   els.confirmBtn.disabled = true;
   els.cancelBtn.disabled = true;
   els.closeModalBtn.disabled = true;
@@ -309,7 +369,7 @@ els.confirmBtn.addEventListener("click", async () => {
   try {
     const resp = await fetch("/api/generate-docx", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: await authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({ token: currentToken, structured: structuredDraft }),
     });
     if (!resp.ok) {

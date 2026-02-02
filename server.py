@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import io
 import os
+import json
 import time
 import uuid
 import tempfile
@@ -11,11 +12,14 @@ from typing import Any, Dict, List, Optional, Tuple
 import pdfplumber
 import pytesseract
 from pdf2image import convert_from_bytes
-from fastapi import Body, FastAPI, File, HTTPException, UploadFile
+from fastapi import Body, Depends, FastAPI, File, Header, HTTPException, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from docx import Document
+import firebase_admin
+from firebase_admin import auth as firebase_auth
+from firebase_admin import credentials as firebase_credentials
 
 from analyze_with_openai import (
     DEFAULT_MODEL,
@@ -38,6 +42,61 @@ TEMPLATE_PATH = os.path.join(APP_ROOT, "template.docx")
 _STORE: Dict[str, Dict[str, Any]] = {}
 _STORE_TTL_SECONDS = 60 * 30  # 30 minutos
 _ALWAYS_NACIONALIDADE = "brasileiro(a)"
+
+_FIREBASE_APP: Optional[firebase_admin.App] = None
+
+
+def _init_firebase_admin() -> firebase_admin.App:
+    """Inicializa firebase-admin (lazy) para validação de idToken."""
+    global _FIREBASE_APP
+    if _FIREBASE_APP is not None:
+        return _FIREBASE_APP
+
+    # 1) Path para serviceAccountKey.json
+    sa_path = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON")
+    if sa_path:
+        cred = firebase_credentials.Certificate(sa_path)
+        _FIREBASE_APP = firebase_admin.initialize_app(cred, {"projectId": os.environ.get("FIREBASE_PROJECT_ID")})
+        return _FIREBASE_APP
+
+    # 2) JSON string do service account
+    sa_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT")
+    if sa_json:
+        info = json.loads(sa_json)
+        cred = firebase_credentials.Certificate(info)
+        _FIREBASE_APP = firebase_admin.initialize_app(cred, {"projectId": os.environ.get("FIREBASE_PROJECT_ID")})
+        return _FIREBASE_APP
+
+    # 3) GOOGLE_APPLICATION_CREDENTIALS (ADC) ou credenciais padrão
+    options: Dict[str, Any] = {}
+    project_id = os.environ.get("FIREBASE_PROJECT_ID")
+    if project_id:
+        options["projectId"] = project_id
+    _FIREBASE_APP = firebase_admin.initialize_app(options=options or None)
+    return _FIREBASE_APP
+
+
+def require_firebase_user(authorization: Optional[str] = Header(default=None)) -> Dict[str, Any]:
+    """Dependency do FastAPI: exige Authorization: Bearer <idToken> e valida com firebase-admin."""
+    if not authorization or not isinstance(authorization, str):
+        raise HTTPException(status_code=401, detail="Não autenticado. Envie Authorization: Bearer <idToken>.")
+    if not authorization.lower().startswith("bearer "):
+        raise HTTPException(status_code=401, detail="Cabeçalho Authorization inválido. Use Bearer <idToken>.")
+
+    token = authorization.split(" ", 1)[1].strip()
+    if not token:
+        raise HTTPException(status_code=401, detail="Token ausente. Use Authorization: Bearer <idToken>.")
+
+    try:
+        _init_firebase_admin()
+        check_revoked = os.environ.get("FIREBASE_CHECK_REVOKED", "").strip() in ("1", "true", "yes", "on")
+        decoded = firebase_auth.verify_id_token(token, check_revoked=check_revoked)
+        if not isinstance(decoded, dict) or not decoded.get("uid"):
+            raise ValueError("Decoded token inválido.")
+        return decoded
+    except Exception:
+        # não vaza detalhes de validação/credencial para o cliente
+        raise HTTPException(status_code=401, detail="Sessão inválida ou expirada. Faça login novamente.")
 
 
 def _cleanup_store() -> None:
@@ -403,8 +462,18 @@ def index() -> str:
         return f.read()
 
 
+@app.get("/login", response_class=HTMLResponse)
+def login_page() -> str:
+    login_path = os.path.join(STATIC_DIR, "login.html")
+    if not os.path.exists(login_path):
+        raise HTTPException(status_code=500, detail="static/login.html não encontrado.")
+    with open(login_path, "r", encoding="utf-8") as f:
+        return f.read()
+
+
 @app.post("/api/extract")
 async def api_extract(
+    _user: Dict[str, Any] = Depends(require_firebase_user),
     files: List[UploadFile] = File(...),
     model: str = DEFAULT_MODEL,
     pages_per_call: int = 0,
@@ -467,7 +536,10 @@ async def api_extract(
 
 
 @app.post("/api/generate-docx")
-def api_generate_docx(payload: Dict[str, Any] = Body(...)) -> FileResponse:
+def api_generate_docx(
+    payload: Dict[str, Any] = Body(...),
+    _user: Dict[str, Any] = Depends(require_firebase_user),
+) -> FileResponse:
     _cleanup_store()
     token = payload.get("token")
     if not token or not isinstance(token, str):

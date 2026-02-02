@@ -4,13 +4,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Extração de dados (PDF → DOCX)</title>
+    <link rel="icon" type="image/png" href="/static/imgs/flavicon horlando.png" />
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
     <main class="container">
       <header class="header">
-        <h1>Extração de dados</h1>
-        <p>Envie <strong>4 PDFs</strong>. Vamos extrair, mostrar um resumo para você confirmar, e então gerar o <strong>.docx</strong>.</p>
+        <div class="header-content">
+          <div>
+            <h1>Extração de dados</h1>
+            <p>Envie <strong>4 PDFs</strong>. Vamos extrair, mostrar um resumo para você confirmar, e então gerar o <strong>.docx</strong>.</p>
+          </div>
+          <button class="btn btn-ghost" type="button" id="logoutBtn">Sair</button>
+        </div>
       </header>
 
       <section class="card">
@@ -55,7 +61,7 @@
       </div>
     </div>
 
-    <script src="/static/app.js"></script>
+    <script type="module" src="/static/app.js"></script>
   </body>
 </html>
 

@@ -1,4 +1,18 @@
 .env
+.ENV
 __pycache__/
 *.pyc
 venv
+.venv
+
+# Firebase service account keys (NEVER commit!)
+serviceAccountKey.json
+*serviceAccountKey*.json
+firebase-adminsdk-*.json
+
+# Arquivos temporários
+*.docx
+!template.docx
+*.tmp
+.DS_Store
+Thumbs.db
