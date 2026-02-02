@@ -56,11 +56,11 @@ Observações:
 - Não comite a chave da API. Use variáveis de ambiente ou um arquivo `.env` que esteja no `.gitignore`.
 - Se o texto for muito grande, passe `--pages` para enviar apenas páginas específicas.
 
-Interface web (upload de 4 PDFs + confirmação + geração de DOCX)
+Interface web (upload de 1–10 PDFs + confirmação + geração de DOCX)
 ---------------------------------------------------------------
 
 Foi adicionado um servidor web simples que:
-- recebe **4 PDFs** por upload
+- recebe **de 1 a 10 PDFs** por upload
 - faz a extração (pdfplumber com fallback OCR) + análise (OpenAI)
 - mostra um **modal de confirmação** com o resumo e o JSON estruturado
 - após confirmar, gera e baixa o **`.docx`** preenchido com o `template.docx`
@@ -68,6 +68,17 @@ Foi adicionado um servidor web simples que:
 Requisitos:
 - Python 3
 - `OPENAI_API_KEY` no ambiente ou em `.env`
+- Autenticação via Firebase (Frontend) e validação de `idToken` no backend via `firebase-admin`
+
+Configuração do Firebase no backend (segurança):
+- O backend espera `Authorization: Bearer <idToken>` em `/api/extract` e `/api/generate-docx`
+- Configure UMA das opções abaixo para o `firebase-admin` conseguir validar tokens:
+  - `FIREBASE_SERVICE_ACCOUNT_JSON="C:\caminho\para\serviceAccountKey.json"`
+  - ou `FIREBASE_SERVICE_ACCOUNT='{"type":"service_account",...}'` (JSON string)
+  - ou `GOOGLE_APPLICATION_CREDENTIALS="C:\caminho\para\serviceAccountKey.json"`
+- Opcional:
+  - `FIREBASE_PROJECT_ID="horlandobraga-168fc"`
+  - `FIREBASE_CHECK_REVOKED=1` (se quiser checar revogação — pode adicionar custo/latência)
 
 Instalar dependências:
 
@@ -83,4 +94,3 @@ uvicorn server:app --reload
 
 Abrir no navegador:
 - `http://127.0.0.1:8000/`
-

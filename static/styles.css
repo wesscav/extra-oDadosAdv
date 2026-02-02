@@ -71,8 +71,9 @@ input[type="file"]{
 .modal-backdrop{
   position:fixed; inset:0;
   background: rgba(0,0,0,.62);
-  display:flex; align-items:center; justify-content:center;
+  display:flex; align-items:flex-start; justify-content:center;
   padding:18px;
+  overflow:auto;
 }
 .hidden{display:none}
 .modal{
@@ -100,7 +101,8 @@ input[type="file"]{
   cursor:pointer;
 }
 .modal-body{padding:16px 18px;max-height:70vh;overflow:auto}
-.modal-body h3{margin:12px 0 10px;font-size:15px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.modal-body{padding:16px 18px;max-height:none;overflow:visible}
+.modal-body h3{margin:12px 0 10px;font-size:15px;color:var(--muted);text-transform:none;letter-spacing:0}
 .modal-footer{
   display:flex;gap:10px;justify-content:flex-end;
   padding:14px 18px;
@@ -115,11 +117,13 @@ input[type="file"]{
   border-radius:999px;
   color:var(--muted);
   background: rgba(0,0,0,.14);
+  text-transform: lowercase;
 }
 .summary{
   display:grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+  text-transform: lowercase;
 }
 @media (max-width: 760px){
   .summary{grid-template-columns:1fr}
@@ -130,13 +134,34 @@ input[type="file"]{
   padding: 12px;
   background: rgba(0,0,0,.14);
 }
-.block-title{margin:0 0 10px;color:var(--muted);font-weight:800;font-size:13px}
+.block-title{margin:0 0 10px;color:var(--muted);font-weight:800;font-size:13px;text-transform: lowercase}
 .kv{display:grid;grid-template-columns: 180px 1fr;gap:8px 10px;font-size:13px}
 @media (max-width: 760px){
   .kv{grid-template-columns:1fr}
 }
-.k{color:var(--muted);font-family:var(--mono);font-size:12px}
+.k{color:var(--muted);font-family:var(--mono);font-size:12px;text-transform: lowercase}
 .v{color:var(--text); white-space: pre-wrap}
+
+.field-input{
+  width:100%;
+  border:1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px 10px;
+  background: rgba(0,0,0,.18);
+  color: var(--text);
+  outline: none;
+  font-family: var(--sans);
+  font-size: 13px;
+}
+textarea.field-input{
+  min-height: 78px;
+  resize: vertical;
+  line-height: 1.35;
+}
+.field-input[readonly]{
+  opacity:.9;
+  cursor:not-allowed;
+}
 .details{margin-top:12px;border:1px solid var(--border);border-radius: 14px;padding:10px;background: rgba(0,0,0,.12)}
 .details summary{cursor:pointer;color:var(--muted);font-weight:700}
 pre.json{
@@ -145,9 +170,11 @@ pre.json{
   border-radius: 12px;
   background: rgba(0,0,0,.18);
   border:1px solid var(--border);
-  overflow:auto;
+  overflow:visible;
   font-family: var(--mono);
   font-size: 12px;
   line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 

@@ -37,6 +37,7 @@ TEMPLATE_PATH = os.path.join(APP_ROOT, "template.docx")
 # armazenamento temporário em memória (token -> payload)
 _STORE: Dict[str, Dict[str, Any]] = {}
 _STORE_TTL_SECONDS = 60 * 30  # 30 minutos
+_ALWAYS_NACIONALIDADE = "brasileiro(a)"
 
 
 def _cleanup_store() -> None:
@@ -45,6 +46,30 @@ def _cleanup_store() -> None:
     for k in expired:
         _STORE.pop(k, None)
 
+
+def _force_brazilian_nationality(structured: Dict[str, Any]) -> Dict[str, Any]:
+    """Força a nacionalidade como 'brasileiro(a)' no JSON estruturado."""
+    try:
+        qa = structured.get("qualificacao_parte_autora")
+        if not isinstance(qa, dict):
+            qa = {}
+            structured["qualificacao_parte_autora"] = qa
+        qa["nacionalidade"] = _ALWAYS_NACIONALIDADE
+    except Exception:
+        # best-effort
+        return structured
+    return structured
+
+
+def _lowercase_strings(obj: Any) -> Any:
+    """Converte recursivamente valores string para minúsculas (best-effort)."""
+    if isinstance(obj, str):
+        return obj.lower()
+    if isinstance(obj, list):
+        return [_lowercase_strings(v) for v in obj]
+    if isinstance(obj, dict):
+        return {k: _lowercase_strings(v) for k, v in obj.items()}
+    return obj
 
 def _configure_ocr() -> Dict[str, Optional[str]]:
     """Configura Tesseract/Poppler via variáveis de ambiente (Windows-friendly).
@@ -427,6 +452,9 @@ async def api_extract(
     if not structured:
         raise HTTPException(status_code=500, detail="A API não retornou nenhum conteúdo estruturado.")
 
+    structured = _force_brazilian_nationality(structured)
+    structured = _lowercase_strings(structured)
+
     token = str(uuid.uuid4())
     _STORE[token] = {"created_at": time.time(), "structured": structured}
 
@@ -447,9 +475,19 @@ def api_generate_docx(payload: Dict[str, Any] = Body(...)) -> FileResponse:
     item = _STORE.get(token)
     if not item:
         raise HTTPException(status_code=404, detail="Token não encontrado ou expirado. Refaça a extração.")
-    structured = item.get("structured")
-    if not isinstance(structured, dict):
-        raise HTTPException(status_code=500, detail="Conteúdo estruturado inválido no servidor.")
+
+    structured_override = payload.get("structured")
+    if structured_override is not None:
+        if not isinstance(structured_override, dict):
+            raise HTTPException(status_code=400, detail="Campo 'structured' deve ser um objeto JSON.")
+        structured = structured_override
+    else:
+        structured = item.get("structured")
+        if not isinstance(structured, dict):
+            raise HTTPException(status_code=500, detail="Conteúdo estruturado inválido no servidor.")
+
+    structured = _force_brazilian_nationality(structured)
+    structured = _lowercase_strings(structured)
 
     out_path = generate_docx_from_structured(structured, TEMPLATE_PATH)
     # opcional: invalidar token após uso (evita reuso)
