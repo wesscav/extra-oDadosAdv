@@ -101,18 +101,19 @@ def _init_firebase_admin() -> firebase_admin.App:
     if _FIREBASE_APP is not None:
         return _FIREBASE_APP
 
-    # 1) Path para serviceAccountKey.json
-    sa_path = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON")
-    if sa_path:
-        cred = firebase_credentials.Certificate(sa_path)
-        _FIREBASE_APP = firebase_admin.initialize_app(cred, {"projectId": os.environ.get("FIREBASE_PROJECT_ID")})
-        return _FIREBASE_APP
-
-    # 2) JSON string do service account
+    # 1) JSON string do service account (RECOMENDADO para AWS App Runner)
     sa_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT")
     if sa_json:
         info = json.loads(sa_json)
         cred = firebase_credentials.Certificate(info)
+        project_id = os.environ.get("FIREBASE_PROJECT_ID") or info.get("project_id")
+        _FIREBASE_APP = firebase_admin.initialize_app(cred, {"projectId": project_id})
+        return _FIREBASE_APP
+
+    # 2) Path para serviceAccountKey.json (fallback para desenvolvimento local)
+    sa_path = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON")
+    if sa_path and os.path.exists(sa_path):
+        cred = firebase_credentials.Certificate(sa_path)
         _FIREBASE_APP = firebase_admin.initialize_app(cred, {"projectId": os.environ.get("FIREBASE_PROJECT_ID")})
         return _FIREBASE_APP
 
@@ -777,6 +778,12 @@ if os.path.isdir(STATIC_DIR):
 def _startup() -> None:
     # carrega .env/.ENV se existir
     load_env(None)
+
+
+@app.get("/api/health")
+def health_check() -> Dict[str, str]:
+    """Health check endpoint for AWS App Runner"""
+    return {"status": "healthy", "service": "extraction-api"}
 
 
 @app.get("/", response_class=HTMLResponse)

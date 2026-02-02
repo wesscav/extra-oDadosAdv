@@ -84,3 +84,21 @@ uvicorn server:app --reload
 Abrir no navegador:
 - `http://127.0.0.1:8000/`
 
+Deploy na AWS
+-------------
+
+Este projeto está configurado para deploy no **AWS App Runner** com integração direta ao GitHub.
+
+Veja o guia completo em **[DEPLOY.md](./DEPLOY.md)** com:
+- ✅ Deploy automático a cada push na branch `main`
+- ✅ Dockerfile com Tesseract e Poppler pré-instalados
+- ✅ Health check configurado
+- ✅ Instruções passo a passo via Console AWS ou AWS CLI
+
+**Início rápido**:
+1. Faça push deste código para seu repositório GitHub
+2. Acesse [AWS App Runner Console](https://console.aws.amazon.com/apprunner/)
+3. Crie um novo serviço conectado ao seu repositório
+4. Configure as variáveis de ambiente (veja `.env.example`)
+5. Deploy automático em ~5-10 minutos!
+
