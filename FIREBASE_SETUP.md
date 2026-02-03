@@ -74,7 +74,7 @@ uvicorn server:app --reload
 
 1. **Faça login** com o e-mail e senha criados no Firebase
 2. Após o login bem-sucedido, o formulário de upload será habilitado
-3. Selecione exatamente **4 arquivos PDF**
+3. Selecione **1 ou mais arquivos PDF**
 4. Clique em **"Extrair e resumir"**
 5. Confirme os dados no modal
 6. Clique em **"Confirmar e gerar .docx"** para baixar o documento
@@ -101,9 +101,7 @@ curl -X POST http://127.0.0.1:8000/api/extract
 curl -X POST http://127.0.0.1:8000/api/extract \
   -H "Authorization: Bearer eyJ..." \
   -F "files=@arquivo1.pdf" \
-  -F "files=@arquivo2.pdf" \
-  -F "files=@arquivo3.pdf" \
-  -F "files=@arquivo4.pdf"
+  -F "files=@arquivo2.pdf"
 ```
 
 ## ⚙️ Variáveis de ambiente disponíveis

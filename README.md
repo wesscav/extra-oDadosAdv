@@ -56,11 +56,11 @@ Observações:
 - Não comite a chave da API. Use variáveis de ambiente ou um arquivo `.env` que esteja no `.gitignore`.
 - Se o texto for muito grande, passe `--pages` para enviar apenas páginas específicas.
 
-Interface web (upload de 4 PDFs + confirmação + geração de DOCX)
----------------------------------------------------------------
+Interface web (upload de PDFs + confirmação + geração de DOCX)
+-------------------------------------------------------------
 
 Foi adicionado um servidor web simples que:
-- recebe **4 PDFs** por upload
+- recebe **1 ou mais PDFs** por upload
 - faz a extração (pdfplumber com fallback OCR) + análise (OpenAI)
 - mostra um **modal de confirmação** com o resumo e o JSON estruturado
 - após confirmar, gera e baixa o **`.docx`** preenchido com o `template.docx`

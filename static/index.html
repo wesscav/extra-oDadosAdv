@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Extração de dados (PDF → DOCX)</title>
+    <title>Extração de dados (PDF/IMG → DOCX)</title>
     <link rel="icon" type="image/png" href="/static/imgs/flavicon horlando.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -34,12 +34,12 @@
             role="button"
             tabindex="0"
             aria-describedby="fileHelp"
-            aria-label="Arraste e solte os arquivos PDF aqui, ou clique para selecionar"
+            aria-label="Arraste e solte os arquivos (PDF, PNG ou JPG) aqui, ou clique para selecionar"
           >
-            <div class="dropzone-title">Arraste e solte os PDFs aqui</div>
-            <div class="dropzone-subtitle">ou clique para selecionar</div>
+            <div class="dropzone-title">Arraste e solte seus arquivos aqui</div>
+            <div class="dropzone-subtitle">PDF, PNG ou JPG</div>
           </div>
-          <input class="file-input-hidden" id="files" name="files" type="file" accept="application/pdf" multiple required />
+          <input class="file-input-hidden" id="files" name="files" type="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" multiple required />
           <div class="help" id="fileHelp">Nenhum arquivo selecionado.</div>
 
           <div class="row">
@@ -59,8 +59,6 @@
         </div>
 
         <div class="modal-body">
-          <div class="pill-row" id="perDocInfo"></div>
-
           <h3>Resumo</h3>
           <div class="summary" id="summary"></div>
         </div>

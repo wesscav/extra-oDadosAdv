@@ -30,7 +30,6 @@ const els = {
   cancelBtn: document.getElementById("cancelBtn"),
   confirmBtn: document.getElementById("confirmBtn"),
 
-  perDocInfo: document.getElementById("perDocInfo"),
   summary: document.getElementById("summary"),
 };
 
@@ -303,17 +302,6 @@ async function authHeaders(extraHeaders = {}, forceRefresh = false) {
   }
 }
 
-function renderPerDocInfo(perDocument = []) {
-  els.perDocInfo.innerHTML = "";
-  for (const d of perDocument) {
-    const pages = Array.isArray(d.pages_analyzed) ? d.pages_analyzed.length : 0;
-    const pill = document.createElement("div");
-    pill.className = "pill";
-    pill.textContent = `${d.source || "documento"} • páginas analisadas: ${pages}`;
-    els.perDocInfo.appendChild(pill);
-  }
-}
-
 function get(structured, path) {
   let cur = structured;
   for (const key of path) {
@@ -387,6 +375,7 @@ function renderSummaryFromStructured(structured) {
     [
       "Conclusão Médica e Medicamentos",
       [
+        ["Conclusão médica", ["dados_medicos", "diagnostico_final_tratamento", "conclusao_medica"]],
         ["Deficiência e CID (principal)", ["dados_medicos", "diagnostico_final_tratamento", "deficiencia_e_CID"]],
         ["Deficiência e CID (secundária/associada)", ["dados_medicos", "diagnostico_final_tratamento", "deficiencia_associada_e_CID"]],
         ["Medicamento prescrito", ["dados_medicos", "diagnostico_final_tratamento", "medicamento_prescrito"]],
@@ -402,7 +391,8 @@ function renderSummaryFromStructured(structured) {
       last.includes("trecho_") ||
       last.includes("finalidade_") ||
       last.includes("endereco") ||
-      last.includes("observacao")
+      last.includes("observacao") ||
+      last.includes("conclusao_medica")
     );
   }
 
@@ -484,15 +474,20 @@ function setFilesFromList(fileList) {
   const incoming = Array.from(fileList || []).filter((f) => f && typeof f.name === "string");
   if (!incoming.length) return;
 
-  const onlyPdfs = incoming.filter((f) => f.name.toLowerCase().endsWith(".pdf"));
-  if (onlyPdfs.length !== incoming.length) {
-    setStatus("Alguns arquivos foram ignorados (apenas PDF é aceito).", "error");
+  const allowedExtensions = ['.pdf', '.png', '.jpg', '.jpeg'];
+  const validFiles = incoming.filter((f) => {
+    const name = f.name.toLowerCase();
+    return allowedExtensions.some(ext => name.endsWith(ext));
+  });
+  
+  if (validFiles.length !== incoming.length) {
+    setStatus("Alguns arquivos foram ignorados (apenas PDF, PNG ou JPG aceitos).", "error");
   } else {
     setStatus("");
   }
 
-  // Limita ao que o usuário escolheu/soltou; validação final (4 PDFs) continua no submit.
-  const selected = onlyPdfs;
+  // Limita ao que o usuário escolheu/soltou; validação final (mín. 1 arquivo) continua no submit.
+  const selected = validFiles;
   try {
     const dt = new DataTransfer();
     for (const f of selected) dt.items.add(f);
@@ -686,12 +681,14 @@ els.form.addEventListener("submit", async (e) => {
   }
 
   const files = els.files.files ? Array.from(els.files.files) : [];
-  if (files.length !== 4) {
-    setStatus("Selecione exatamente 4 PDFs.", "error");
+  if (files.length < 1) {
+    setStatus("Selecione pelo menos 1 arquivo (PDF, PNG ou JPG).", "error");
     return;
   }
-  if (files.some((f) => !f.name.toLowerCase().endsWith(".pdf"))) {
-    setStatus("Todos os arquivos precisam ser PDF.", "error");
+  
+  const allowedExtensions = ['.pdf', '.png', '.jpg', '.jpeg'];
+  if (files.some((f) => !allowedExtensions.some(ext => f.name.toLowerCase().endsWith(ext)))) {
+    setStatus("Todos os arquivos precisam ser PDF, PNG ou JPG.", "error");
     return;
   }
 
@@ -741,7 +738,6 @@ els.form.addEventListener("submit", async (e) => {
 
     currentToken = result.token;
     structuredDraft = ensureDefaults(deepClone(result.structured || {}));
-    renderPerDocInfo(result.per_document || []);
     renderSummaryFromStructured(structuredDraft);
 
     setStatus("Resumo pronto. Confirme no modal para gerar o DOCX.", "ok");

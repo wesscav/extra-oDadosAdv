@@ -21,7 +21,6 @@ import json
 import os
 import sys
 import time
-import textwrap
 from typing import Any, Dict, List, Optional, Tuple
 
 try:
@@ -37,7 +36,7 @@ except Exception:
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 
-DEFAULT_MODEL = "gpt-4o"  # Modelo mais recente e eficiente
+DEFAULT_MODEL = "gpt-4o-mini"  # Modelo mais econômico (~60% mais barato) mantendo boa acurácia para extração estruturada
 
 # Heurística para o "documento grande do INSS":
 # - se a página 1 contiver algum desses termos
@@ -50,25 +49,6 @@ INSS_KEYWORDS = [
     "INSS",
     "Instituto Nacional do Seguro Social"
 ]
-PERSONAL_DATA_HEADER = "CPF Nome Completo Data Nascimento Nome Completo da Mãe"
-PERSONAL_DATA_STOP_KEYWORDS = (
-    "procuradores",
-    "procurador",
-    "representantes legais",
-    "representante legal",
-    "procuração",
-    "procuracao",
-    "outorgante",
-    "outorgado",
-    "interessados",
-    PERSONAL_DATA_HEADER.lower(),
-)
-PERSONAL_DATA_STOP_KEYWORDS_NO_HEADER = tuple(
-    keyword for keyword in PERSONAL_DATA_STOP_KEYWORDS if keyword != PERSONAL_DATA_HEADER.lower()
-)
-PERSONAL_DATA_BLOCK_MAX_LINES = 6
-
-
 FUNCTION_SCHEMA = {
     "name": "extrair_campos_laudo",
     "description": "Extrai campos administrativos, médicos e processuais de um texto de laudo.",
@@ -130,6 +110,7 @@ FUNCTION_SCHEMA = {
                     "diagnostico_final_tratamento": {
                         "type": "object",
                         "properties": {
+                            "conclusao_medica": {"type": ["string", "null"]},
                             "deficiencia_e_CID": {"type": ["string", "null"]},
                             "deficiencia_associada_e_CID": {"type": ["string", "null"]},
                             "medicamento_prescrito": {"type": ["string", "null"]},
@@ -283,59 +264,6 @@ def _find_pages_containing(ocr_like: Dict[str, Any], pages: List[int], needle: s
         if n in (txt or "").lower():
             hits.append(pn)
     return hits
-
-
-def _find_interessados_pages(ocr_like: Dict[str, Any], pages: List[int]) -> List[int]:
-    """Encontra páginas que contêm a seção 'Interessados' com o cabeçalho da tabela de dados pessoais."""
-    hits: List[int] = []
-    for pn in pages:
-        txt = (_get_page_text(ocr_like, pn) or "").lower()
-        # Busca pela seção "Interessados" E pelo cabeçalho da tabela
-        if "interessados" in txt and "cpf" in txt and "nome completo" in txt and "data" in txt and "nascimento" in txt:
-            hits.append(pn)
-    return hits
-
-
-def _extract_personal_data_section(text: str) -> Optional[str]:
-    """Return the first block that follows the CPF Nome... header."""
-    if not text:
-        return None
-    lines = text.splitlines()
-    header_lower = PERSONAL_DATA_HEADER.lower()
-    for idx, line in enumerate(lines):
-        if header_lower in line.lower():
-            start = idx
-            if idx > 0 and "interessados" in lines[idx - 1].strip().lower():
-                start -= 1
-            collected: List[str] = []
-            for j in range(start, len(lines)):
-                current = lines[j]
-                stripped_lower = current.strip().lower()
-                if j > idx and any(keyword in stripped_lower for keyword in PERSONAL_DATA_STOP_KEYWORDS_NO_HEADER):
-                    break
-                collected.append(current)
-                if len(collected) >= PERSONAL_DATA_BLOCK_MAX_LINES:
-                    break
-            section = "\n".join(collected).strip()
-            return section or None
-    return None
-
-
-def _build_personal_data_hint(section: Optional[str], is_inss_doc: bool) -> str:
-    if not is_inss_doc:
-        return ""
-    header_desc = f"'{PERSONAL_DATA_HEADER}'"
-    if section:
-        snippet = textwrap.indent(section.strip(), "  ")
-        return (
-            f"- Seção {header_desc} detectada; use apenas esse bloco para preencher 'qualificacao_parte_autora' e ignore outros nomes (ex: Horlando Braga Filho).\n"
-            "```text\n"
-            f"{snippet}\n"
-            "```\n"
-        )
-    return (
-        f"- Não identifiquei nenhuma seção contendo {header_desc}. Retorne null para todos os campos de 'qualificacao_parte_autora'.\n"
-    )
 
 
 def _is_laudo_document(ocr_like: Dict[str, Any]) -> bool:
@@ -597,6 +525,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     system_msg = (
         "Você é um assistente que analisa laudos e extrai campos jurídicos e médicos. "
         "Retorne apenas JSON seguindo o schema de função. Se o dado não existir, retorne null. "
+        "Datas: use formato DD/MM/YYYY (ex: 05/12/2024). "
         "Se houver baixa confiança, inclua o valor e marque '[confiança baixa]'."
     )
 
@@ -632,11 +561,9 @@ def main(argv: Optional[List[str]] = None) -> int:
                 continue
 
             # Regras de extração para dados pessoais:
-            # - dados pessoais do paciente/parte autora (qualificacao_parte_autora.*) devem vir EXCLUSIVAMENTE
-            #   do PDF do INSS, e especificamente das páginas que contêm a seção "Interessados".
+            # - dados pessoais do paciente/parte autora (qualificacao_parte_autora.*) devem vir do PDF do INSS.
             # - nunca usar "Horlando Braga Filho" ou dados de "Procuradores / Representantes Legais" como dados pessoais do paciente.
             is_inss_doc = _is_inss_document(ex, args.inss_min_total_pages)
-            interessados_pages = _find_interessados_pages(ex, page_numbers) if is_inss_doc else []
 
             laudo_role = laudo_roles_by_source.get(source, "none")
 
@@ -649,8 +576,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                 if not chunk_text.strip():
                     continue
 
-                personal_data_section = _extract_personal_data_section(chunk_text)
-                personal_data_hint = _build_personal_data_hint(personal_data_section, is_inss_doc)
+                personal_data_hint = ""  # análise em todas as páginas do INSS, sem restrição a seção específica
 
                 personal_data_policy = (
                     "POLÍTICA DE DADOS PESSOAIS (OBRIGATÓRIA):\n"
@@ -660,15 +586,35 @@ def main(argv: Optional[List[str]] = None) -> int:
                 if is_inss_doc:
                     personal_data_policy += (
                         "- ESTE documento é o PDF do INSS.\n"
-                        f"- Extraia 'qualificacao_parte_autora' SOMENTE da seção 'INTERESSADOS' que contém o cabeçalho 'CPF Nome Completo Data Nascimento Nome Completo da Mãe'. Páginas detectadas: {interessados_pages or 'nenhuma'}.\n"
-                        "- Procure especificamente pela tabela com o cabeçalho: 'CPF Nome Completo Data Nascimento Nome Completo da Mãe'\n"
-                        "- Extraia APENAS os dados que aparecem IMEDIATAMENTE APÓS este cabeçalho na seção 'Interessados'.\n"
-                        "- Se não houver informação suficiente nessas páginas, retorne null (não adivinhe).\n"
-                        "- ATENÇÃO CRÍTICA: NUNCA extraia dados da seção 'Procuradores / Representantes Legais'.\n"
-                        "  - IGNORE completamente 'Horlando Braga Filho' e seu CPF (028.951.113-59) - ele é o advogado/procurador, NÃO é o paciente.\n"
-                        "  - Se encontrar múltiplas tabelas com o mesmo cabeçalho, use APENAS a da seção 'Interessados', NÃO a de 'Procuradores'.\n"
-                        "  - Só preencha representante_legal_* se o documento indicar explicitamente que a pessoa é pai/mãe/responsável legal do paciente,\n"
-                        "    e ainda assim, certifique-se de que não está confundindo com dados da seção de procuradores.\n"
+                        f"- Analise o conteúdo de todas as {len(page_numbers)} páginas e extraia 'qualificacao_parte_autora' de qualquer parte relevante do documento.\n"
+                        "- ATENÇÃO: NUNCA use dados da seção 'Procuradores / Representantes Legais' como dados do paciente.\n"
+                        "  - IGNORE 'Horlando Braga Filho' e seu CPF (028.951.113-59) - ele é o advogado/procurador, NÃO o paciente.\n"
+                        "\n"
+                        "REGRAS PARA REPRESENTANTE LEGAL (CRÍTICO):\n"
+                        "- Procure por seções com o título 'PROCURAÇÃO' ou texto contendo 'Outorgante' e 'representado (a) por'.\n"
+                        "- FORMATO TÍPICO DA PROCURAÇÃO:\n"
+                        "  'PROCURAÇÃO\n"
+                        "   Outorgante: [Nome do Paciente], brasileiro, [estado civil], [profissão], CPF: XXX.XXX.XXX-XX e RG: XXXXXXXXX,\n"
+                        "   representado (a) por [Nome do Representante Legal], CPF: XXX.XXX.XXX-XX e RG: XXXXXXXXX'\n"
+                        "\n"
+                        "- REGRA DE EXTRAÇÃO:\n"
+                        "  1. OUTORGANTE = PACIENTE (pessoa que dá a procuração) → Preencha 'nome', 'cpf' da qualificacao_parte_autora\n"
+                        "  2. REPRESENTADO POR = REPRESENTANTE LEGAL (quem representa o paciente) → Preencha:\n"
+                        "     - representante_legal_nome: nome completo que vem APÓS 'representado (a) por' ou 'representado(a) por'\n"
+                        "     - representante_legal_cpf: CPF que vem logo após o nome do representante\n"
+                        "     - representante_legal_rg: RG que vem logo após o CPF do representante\n"
+                        "\n"
+                        "- EXEMPLO REAL:\n"
+                        "  Texto: 'Outorgante: Heliabison Matias Correia, brasileiro, Solteiro(a), Estudante, CPF: 078.428.503-99\n"
+                        "         e RG: 2020096219-6, representado (a) por Daiane Cunha Matias, CPF: 021.409.413-81 e RG: 2004003002105'\n"
+                        "  EXTRAÇÃO CORRETA:\n"
+                        "  - nome: 'Heliabison Matias Correia'\n"
+                        "  - cpf: '078.428.503-99'\n"
+                        "  - representante_legal_nome: 'Daiane Cunha Matias'\n"
+                        "  - representante_legal_cpf: '021.409.413-81'\n"
+                        "  - representante_legal_rg: '2004003002105'\n"
+                        "\n"
+                        "- ATENÇÃO: NÃO confunda o representante legal (familiar/tutor na procuração) com o advogado/procurador (Horlando Braga Filho).\n"
                     )
                 else:
                     personal_data_policy += (
@@ -685,6 +631,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                     laudo_policy += (
                         "- ESTE documento é o PRIMEIRO LAUDO (laudo_principal).\n"
                         "- Preencha COMPLETAMENTE 'dados_medicos.laudo_principal' (incluindo nome_do_medico e especialidade_do_medico) e campos correlatos do laudo.\n"
+                        "- O campo 'trecho_clinico_relevante' (descrição do laudo) DEVE começar com 'Recomenda' (ex: 'Recomenda acompanhamento...', 'Recomenda-se que...').\n"
                         "- Retorne 'dados_medicos.laudo_psiquiatrico_segundo_laudo' como null (ou subcampos null).\n"
                     )
                 elif laudo_role == "segundo":
@@ -699,12 +646,27 @@ def main(argv: Optional[List[str]] = None) -> int:
                         "- Se não for um dos 2 laudos, retorne ambos os blocos de laudo como null.\n"
                     )
 
+                conclusao_policy = (
+                    "POLÍTICA DE CONCLUSÃO MÉDICA (OBRIGATÓRIA):\n"
+                    "- Extraia 'diagnostico_final_tratamento' dos laudos (deficiência/CID, medicamento, finalidade).\n"
+                    "- 'conclusao_medica': síntese textual da conclusão clínica do médico sobre o paciente "
+                    "(diagnóstico final, comprometimento, necessidade de acompanhamento). Preencha se houver nos laudos.\n"
+                )
+                relatorio_escolar_policy = (
+                    "POLÍTICA DO RELATÓRIO ESCOLAR (OBRIGATÓRIA):\n"
+                    "- Nos campos 'resumo' e 'resumo_continuacao' do relatorio_escolar: extraia SOMENTE o que é importante sobre o aluno "
+                    "(dificuldades, necessidades, limitações, recomendações, desempenho).\n"
+                    "- NÃO inclua texto introdutório como 'este relatório visa fornecer informações...', 'com foco nas necessidades especiais...' ou similares.\n"
+                )
+
                 user_msg = (
                     f"Documento fonte: {source}\n"
                     + "Analise o texto a seguir e preencha os campos do schema. Retorne somente o JSON.\n"
                     + personal_data_policy
                     + personal_data_hint
                     + laudo_policy
+                    + conclusao_policy
+                    + relatorio_escolar_policy
                     + "Texto:\n"
                     + chunk_text
                 )
@@ -756,7 +718,6 @@ def main(argv: Optional[List[str]] = None) -> int:
             return 3
 
         is_inss_doc = _is_inss_document(ocr, args.inss_min_total_pages)
-        interessados_pages = _find_interessados_pages(ocr, page_numbers) if is_inss_doc else []
 
         chunks = chunk_page_numbers(page_numbers, args.pages_per_call)
         if not chunks:
@@ -768,8 +729,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             if not chunk_text.strip():
                 continue
 
-            personal_data_section = _extract_personal_data_section(chunk_text)
-            personal_data_hint = _build_personal_data_hint(personal_data_section, is_inss_doc)
+            personal_data_hint = ""  # análise em todas as páginas do INSS, sem restrição a seção específica
 
             personal_data_policy = (
                 "POLÍTICA DE DADOS PESSOAIS (OBRIGATÓRIA):\n"
@@ -779,15 +739,35 @@ def main(argv: Optional[List[str]] = None) -> int:
             if is_inss_doc:
                 personal_data_policy += (
                     "- ESTE documento é o PDF do INSS.\n"
-                    f"- Extraia 'qualificacao_parte_autora' SOMENTE da seção 'INTERESSADOS' que contém o cabeçalho 'CPF Nome Completo Data Nascimento Nome Completo da Mãe'. Páginas detectadas: {interessados_pages or 'nenhuma'}.\n"
-                    "- Procure especificamente pela tabela com o cabeçalho: 'CPF Nome Completo Data Nascimento Nome Completo da Mãe'\n"
-                    "- Extraia APENAS os dados que aparecem IMEDIATAMENTE APÓS este cabeçalho na seção 'Interessados'.\n"
-                    "- Se não houver informação suficiente nessas páginas, retorne null (não adivinhe).\n"
-                    "- ATENÇÃO CRÍTICA: NUNCA extraia dados da seção 'Procuradores / Representantes Legais'.\n"
-                    "  - IGNORE completamente 'Horlando Braga Filho' e seu CPF (028.951.113-59) - ele é o advogado/procurador, NÃO é o paciente.\n"
-                    "  - Se encontrar múltiplas tabelas com o mesmo cabeçalho, use APENAS a da seção 'Interessados', NÃO a de 'Procuradores'.\n"
-                    "  - Só preencha representante_legal_* se o documento indicar explicitamente que a pessoa é pai/mãe/responsável legal do paciente,\n"
-                    "    e ainda assim, certifique-se de que não está confundindo com dados da seção de procuradores.\n"
+                    f"- Analise o conteúdo de todas as {len(page_numbers)} páginas e extraia 'qualificacao_parte_autora' de qualquer parte relevante do documento.\n"
+                    "- ATENÇÃO: NUNCA use dados da seção 'Procuradores / Representantes Legais' como dados do paciente.\n"
+                    "  - IGNORE 'Horlando Braga Filho' e seu CPF (028.951.113-59) - ele é o advogado/procurador, NÃO o paciente.\n"
+                    "\n"
+                    "REGRAS PARA REPRESENTANTE LEGAL (CRÍTICO):\n"
+                    "- Procure por seções com o título 'PROCURAÇÃO' ou texto contendo 'Outorgante' e 'representado (a) por'.\n"
+                    "- FORMATO TÍPICO DA PROCURAÇÃO:\n"
+                    "  'PROCURAÇÃO\n"
+                    "   Outorgante: [Nome do Paciente], brasileiro, [estado civil], [profissão], CPF: XXX.XXX.XXX-XX e RG: XXXXXXXXX,\n"
+                    "   representado (a) por [Nome do Representante Legal], CPF: XXX.XXX.XXX-XX e RG: XXXXXXXXX'\n"
+                    "\n"
+                    "- REGRA DE EXTRAÇÃO:\n"
+                    "  1. OUTORGANTE = PACIENTE (pessoa que dá a procuração) → Preencha 'nome', 'cpf' da qualificacao_parte_autora\n"
+                    "  2. REPRESENTADO POR = REPRESENTANTE LEGAL (quem representa o paciente) → Preencha:\n"
+                    "     - representante_legal_nome: nome completo que vem APÓS 'representado (a) por' ou 'representado(a) por'\n"
+                    "     - representante_legal_cpf: CPF que vem logo após o nome do representante\n"
+                    "     - representante_legal_rg: RG que vem logo após o CPF do representante\n"
+                    "\n"
+                    "- EXEMPLO REAL:\n"
+                    "  Texto: 'Outorgante: Heliabison Matias Correia, brasileiro, Solteiro(a), Estudante, CPF: 078.428.503-99\n"
+                    "         e RG: 2020096219-6, representado (a) por Daiane Cunha Matias, CPF: 021.409.413-81 e RG: 2004003002105'\n"
+                    "  EXTRAÇÃO CORRETA:\n"
+                    "  - nome: 'Heliabison Matias Correia'\n"
+                    "  - cpf: '078.428.503-99'\n"
+                    "  - representante_legal_nome: 'Daiane Cunha Matias'\n"
+                    "  - representante_legal_cpf: '021.409.413-81'\n"
+                    "  - representante_legal_rg: '2004003002105'\n"
+                    "\n"
+                    "- ATENÇÃO: NÃO confunda o representante legal (familiar/tutor na procuração) com o advogado/procurador (Horlando Braga Filho).\n"
                 )
             else:
                 personal_data_policy += (
@@ -796,10 +776,25 @@ def main(argv: Optional[List[str]] = None) -> int:
                     "  (ou seja: NÃO extraia nome/CPF/endereço do paciente daqui, mesmo que apareça no texto).\n"
                 )
 
+            conclusao_policy = (
+                "POLÍTICA DE CONCLUSÃO MÉDICA (OBRIGATÓRIA):\n"
+                "- Extraia 'diagnostico_final_tratamento' dos laudos (deficiência/CID, medicamento, finalidade).\n"
+                "- 'conclusao_medica': síntese textual da conclusão clínica do médico sobre o paciente "
+                "(diagnóstico final, comprometimento, necessidade de acompanhamento). Preencha se houver nos laudos.\n"
+            )
+            relatorio_escolar_policy = (
+                "POLÍTICA DO RELATÓRIO ESCOLAR (OBRIGATÓRIA):\n"
+                "- Nos campos 'resumo' e 'resumo_continuacao' do relatorio_escolar: extraia SOMENTE o que é importante sobre o aluno "
+                "(dificuldades, necessidades, limitações, recomendações, desempenho).\n"
+                "- NÃO inclua texto introdutório como 'este relatório visa fornecer informações...', 'com foco nas necessidades especiais...' ou similares.\n"
+            )
+
             user_msg = (
                 "Analise o texto a seguir e preencha os campos do schema. Retorne somente o JSON.\n"
                 + personal_data_policy
                 + personal_data_hint
+                + conclusao_policy
+                + relatorio_escolar_policy
                 + "Texto:\n"
                 + chunk_text
             )

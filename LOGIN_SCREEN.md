@@ -112,7 +112,7 @@ http://127.0.0.1:8000/login
 - Será redirecionado para a página principal
 
 ### **3. Usar a aplicação:**
-- Faça upload dos 4 PDFs
+- Faça upload dos PDFs (pelo menos 1)
 - Confirme os dados extraídos
 - Gere o .docx
 

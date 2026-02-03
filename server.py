@@ -4,10 +4,12 @@ from __future__ import annotations
 import io
 import os
 import json
+import re
 import time
 import uuid
 import tempfile
 import threading
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 from enum import Enum
 
@@ -38,7 +40,9 @@ from fill_template import prepare_replacements, process_document
 
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(APP_ROOT, "static")
-TEMPLATE_PATH = os.path.join(APP_ROOT, "template.docx")
+TEMPLATE_PATH = os.path.join(APP_ROOT, "template_final_real.docx")
+LOGS_DIR = os.path.join(APP_ROOT, "logs")
+INSS_LOG_FILE = os.path.join(LOGS_DIR, "inss_extraction.log")
 
 # armazenamento temporário em memória (token -> payload)
 _STORE: Dict[str, Dict[str, Any]] = {}
@@ -225,6 +229,45 @@ def _format_cpf(cpf: str) -> str:
     return f"{digits[:3]}.{digits[3:6]}.{digits[6:9]}-{digits[9:]}"
 
 
+_MESES_PT = {
+    "janeiro": 1, "fevereiro": 2, "março": 3, "marco": 3, "abril": 4, "maio": 5,
+    "junho": 6, "julho": 7, "agosto": 8, "setembro": 9, "outubro": 10,
+    "novembro": 11, "dezembro": 12,
+}
+
+
+def _format_date(val: str) -> str:
+    """Converte datas para formato DD/MM/YYYY (ex: 05/12/2024)."""
+    if not val or not isinstance(val, str):
+        return val
+    val = val.strip()
+    if not val:
+        return val
+    # ISO YYYY-MM-DD
+    m = re.match(r"(\d{4})-(\d{1,2})-(\d{1,2})", val)
+    if m:
+        y, mo, d = m.group(1), m.group(2).zfill(2), m.group(3).zfill(2)
+        return f"{d}/{mo}/{y}"
+    # DD/MM/YYYY (já está ok)
+    if re.match(r"\d{1,2}/\d{1,2}/\d{4}", val):
+        parts = val.split("/")
+        if len(parts) == 3:
+            return f"{parts[0].zfill(2)}/{parts[1].zfill(2)}/{parts[2]}"
+    # DD-MM-YYYY
+    m = re.match(r"(\d{1,2})-(\d{1,2})-(\d{4})", val)
+    if m:
+        d, mo, y = m.group(1).zfill(2), m.group(2).zfill(2), m.group(3)
+        return f"{d}/{mo}/{y}"
+    # "05 de dezembro de 2024" ou "5 de dezembro de 2024"
+    m = re.match(r"(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})", val, re.IGNORECASE)
+    if m:
+        d, mes_nome, y = m.group(1).zfill(2), m.group(2).lower(), m.group(3)
+        mo = _MESES_PT.get(mes_nome)
+        if mo:
+            return f"{d}/{mo:02d}/{y}"
+    return val
+
+
 def _format_cid(cid: str) -> str:
     """Formata CID para garantir formato CID-XX ou CID-XX.X."""
     if not cid or not isinstance(cid, str):
@@ -315,6 +358,14 @@ def _get_field_type(path: List[str]) -> str:
         'cid',
     }
     
+    # Datas (formato DD/MM/YYYY)
+    date_fields = {
+        'data_emissao',
+        'data_do_laudo',
+        'data_segundo_laudo',
+        'DER_data_entrada_requerimento',
+    }
+    
     # Especialidades médicas, deficiências, medicamentos
     medical_fields = {
         'especialidade_do_medico',
@@ -330,6 +381,8 @@ def _get_field_type(path: List[str]) -> str:
         return 'cpf'
     elif last in cid_fields:
         return 'cid'
+    elif last in date_fields:
+        return 'date'
     elif last in medical_fields:
         return 'medical'
     else:
@@ -350,6 +403,8 @@ def _process_strings(obj: Any, path: List[str] = None) -> Any:
             return _format_cpf(obj)
         elif field_type == 'cid':
             return _format_cid(obj)
+        elif field_type == 'date':
+            return _format_date(obj)
         elif field_type == 'medical':
             return _capitalize_medical_term(obj)
         else:
@@ -362,6 +417,25 @@ def _process_strings(obj: Any, path: List[str] = None) -> Any:
         return {k: _process_strings(v, path + [k]) for k, v in obj.items()}
     
     return obj
+
+def _log_inss_extraction(source: str, chunk_idx: int, total_chunks: int, text_sample: str, structured: Dict[str, Any]) -> None:
+    """Registra em log a extração do documento INSS."""
+    try:
+        os.makedirs(LOGS_DIR, exist_ok=True)
+        ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        text_preview = (text_sample or "")[:500].replace("\n", " ")
+        entry = {
+            "timestamp": ts,
+            "source": source,
+            "chunk": f"{chunk_idx + 1}/{total_chunks}",
+            "text_preview": text_preview,
+            "structured": structured,
+        }
+        with open(INSS_LOG_FILE, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    except Exception as e:
+        print(f"[LOG INSS] Erro ao gravar log: {e}")
+
 
 def _configure_ocr() -> Dict[str, Optional[str]]:
     """Configura Tesseract/Poppler via variáveis de ambiente (Windows-friendly).
@@ -438,6 +512,29 @@ def extract_pdf_hybrid_text(
     return {"source": source_name, "page_count": len(pages), "pages": pages}
 
 
+def extract_image_text(
+    image_bytes: bytes,
+    source_name: str,
+    *,
+    ocr_lang: str = "por",
+    ocr_dpi: int = 300,
+) -> Dict[str, Any]:
+    """Extrai texto de imagem PNG/JPG usando Tesseract OCR."""
+    from PIL import Image
+    
+    _configure_ocr()
+    
+    # Carrega a imagem
+    img = Image.open(io.BytesIO(image_bytes))
+    
+    # Aplica OCR
+    text = pytesseract.image_to_string(img, lang=ocr_lang, config="--psm 6")
+    
+    # Retorna no mesmo formato que PDF (1 página)
+    pages = [{"page_number": 1, "text": text, "words": [], "method": "ocr"}]
+    return {"source": source_name, "page_count": 1, "pages": pages}
+
+
 def _summarize_structured(structured: Dict[str, Any]) -> Dict[str, Any]:
     """Gera um resumo “human-friendly” do JSON estruturado para o modal."""
     def g(path: List[str]) -> Optional[Any]:
@@ -492,22 +589,36 @@ def _process_extraction_background(
         return
     
     try:
-        task.update(status=TaskStatus.PROCESSING, progress=10, message="Extraindo texto dos PDFs...")
+        task.update(status=TaskStatus.PROCESSING, progress=10, message="Extraindo texto dos arquivos...")
         
-        # Extrai texto dos PDFs
+        # Extrai texto dos arquivos (PDF, PNG, JPG)
         extractions: List[Dict[str, Any]] = []
         for i, (content, filename) in enumerate(file_contents):
             task.update(progress=10 + (i * 20 // len(file_contents)), 
                        message=f"Extraindo texto de {filename}...")
-            extractions.append(
-                extract_pdf_hybrid_text(
+            
+            # Detecta o tipo de arquivo pela extensão
+            ext = filename.lower()
+            
+            if ext.endswith('.pdf'):
+                extraction = extract_pdf_hybrid_text(
                     content,
                     filename,
                     ocr_lang=ocr_lang,
                     ocr_min_chars=ocr_min_chars,
                     ocr_dpi=ocr_dpi,
                 )
-            )
+            elif ext.endswith(('.png', '.jpg', '.jpeg')):
+                extraction = extract_image_text(
+                    content,
+                    filename,
+                    ocr_lang=ocr_lang,
+                    ocr_dpi=ocr_dpi,
+                )
+            else:
+                raise ValueError(f"Tipo de arquivo não suportado: {filename}")
+            
+            extractions.append(extraction)
         
         task.update(progress=30, message="Analisando documentos com IA...")
         
@@ -574,6 +685,7 @@ def analyze_extractions_with_openai(
     system_msg = (
         "Você é um assistente que analisa laudos e extrai campos jurídicos e médicos. "
         "Retorne apenas JSON seguindo o schema de função. Se o dado não existir, retorne null. "
+        "Datas: use formato DD/MM/YYYY (ex: 05/12/2024). "
         "Se houver baixa confiança, inclua o valor e marque '[confiança baixa]'."
     )
 
@@ -591,17 +703,6 @@ def analyze_extractions_with_openai(
             t1 = (ex["pages"][0].get("text") or "")
         t1 = t1.lower()
         return any(k in t1 for k in INSS_KEYWORDS)
-
-    def _pages_containing(ex: Dict[str, Any], pages: List[int], needle: str) -> List[int]:
-        n = (needle or "").strip().lower()
-        hits: List[int] = []
-        for pn in pages:
-            for p in ex.get("pages", []) or []:
-                if p.get("page_number") == pn:
-                    if n in ((p.get("text") or "").lower()):
-                        hits.append(pn)
-                    break
-        return hits
 
     def _is_laudo_doc(ex: Dict[str, Any]) -> bool:
         t1 = ""
@@ -662,12 +763,6 @@ def analyze_extractions_with_openai(
             continue
 
         is_inss_doc = _is_inss_doc(ex)
-        outorgante_pages = _pages_containing(ex, page_numbers, "outorgante") if is_inss_doc else []
-        # fallback para casos onde a seção esteja rotulada de outra forma
-        if is_inss_doc and not outorgante_pages:
-            outorgante_pages = _pages_containing(ex, page_numbers, "procuração")
-        if is_inss_doc and not outorgante_pages:
-            outorgante_pages = _pages_containing(ex, page_numbers, "procuracao")
 
         laudo_role = laudo_roles.get(source, "none")
 
@@ -689,9 +784,35 @@ def analyze_extractions_with_openai(
             if is_inss_doc:
                 personal_data_policy += (
                     "- ESTE documento é o PDF do INSS.\n"
-                    f"- Extraia 'qualificacao_parte_autora' SOMENTE a partir da(s) página(s) que contém 'OUTORGANTE'. Páginas detectadas: {outorgante_pages or 'nenhuma'}.\n"
-                    "- Se não houver informação suficiente nessas páginas, retorne null.\n"
-                    "- Nunca use 'Horlando Braga Filho' como dados pessoais do paciente/parte autora.\n"
+                    f"- Analise o conteúdo de todas as {len(page_numbers)} páginas e extraia 'qualificacao_parte_autora' de qualquer parte relevante do documento.\n"
+                    "- ATENÇÃO: NUNCA use dados da seção 'Procuradores / Representantes Legais' como dados do paciente.\n"
+                    "  - IGNORE 'Horlando Braga Filho' e seu CPF (028.951.113-59) - ele é o advogado/procurador, NÃO o paciente e NÃO é o representante legal.\n"
+                    "\n"
+                    "REGRAS PARA REPRESENTANTE LEGAL (CRÍTICO):\n"
+                    "- Procure por seções com o título 'PROCURAÇÃO' ou texto contendo 'Outorgante' e 'representado (a) por'.\n"
+                    "- FORMATO TÍPICO DA PROCURAÇÃO:\n"
+                    "  'PROCURAÇÃO\n"
+                    "   Outorgante: [Nome do Paciente], brasileiro, [estado civil], [profissão], CPF: XXX.XXX.XXX-XX e RG: XXXXXXXXX,\n"
+                    "   representado (a) por [Nome do Representante Legal], CPF: XXX.XXX.XXX-XX e RG: XXXXXXXXX'\n"
+                    "\n"
+                    "- REGRA DE EXTRAÇÃO:\n"
+                    "  1. OUTORGANTE = PACIENTE (pessoa que dá a procuração) → Preencha 'nome', 'cpf' da qualificacao_parte_autora\n"
+                    "  2. REPRESENTADO POR = REPRESENTANTE LEGAL (quem representa o paciente) → Preencha:\n"
+                    "     - representante_legal_nome: nome completo que vem APÓS 'representado (a) por' ou 'representado(a) por'\n"
+                    "     - representante_legal_cpf: CPF que vem logo após o nome do representante\n"
+                    "     - representante_legal_rg: RG que vem logo após o CPF do representante\n"
+                    "\n"
+                    "- EXEMPLO REAL:\n"
+                    "  Texto: 'Outorgante: Heliabison Matias Correia, brasileiro, Solteiro(a), Estudante, CPF: 078.428.503-99\n"
+                    "         e RG: 2020096219-6, representado (a) por Daiane Cunha Matias, CPF: 021.409.413-81 e RG: 2004003002105'\n"
+                    "  EXTRAÇÃO CORRETA:\n"
+                    "  - nome: 'Heliabison Matias Correia'\n"
+                    "  - cpf: '078.428.503-99'\n"
+                    "  - representante_legal_nome: 'Daiane Cunha Matias'\n"
+                    "  - representante_legal_cpf: '021.409.413-81'\n"
+                    "  - representante_legal_rg: '2004003002105'\n"
+                    "\n"
+                    "- ATENÇÃO: NÃO confunda o representante legal (familiar/tutor na procuração) com o advogado/procurador (Horlando Braga Filho).\n"
                 )
             else:
                 personal_data_policy += (
@@ -703,9 +824,21 @@ def analyze_extractions_with_openai(
                 "POLÍTICA DOS LAUDOS (OBRIGATÓRIA):\n"
                 "- Existem 2 laudos médicos distintos. Não misture médico/especialidade/datas/CIDs entre eles.\n"
             )
+            conclusao_policy = (
+                "POLÍTICA DE CONCLUSÃO MÉDICA (OBRIGATÓRIA):\n"
+                "- Extraia 'diagnostico_final_tratamento' (deficiência/CID, medicamento, finalidade). "
+                "'conclusao_medica': síntese da conclusão clínica do médico. Preencha se houver nos laudos.\n"
+            )
+            relatorio_escolar_policy = (
+                "POLÍTICA DO RELATÓRIO ESCOLAR (OBRIGATÓRIA):\n"
+                "- Nos campos 'resumo' e 'resumo_continuacao' do relatorio_escolar: extraia SOMENTE o que é importante sobre o aluno "
+                "(dificuldades, necessidades, limitações, recomendações, desempenho). "
+                "NÃO inclua texto introdutório como 'este relatório visa fornecer informações...' ou similares.\n"
+            )
             if laudo_role == "principal":
                 laudo_policy += (
                     "- ESTE documento é o PRIMEIRO LAUDO (laudo_principal). Preencha COMPLETAMENTE 'dados_medicos.laudo_principal'.\n"
+                    "- O campo 'trecho_clinico_relevante' (descrição do laudo) DEVE começar com 'Recomenda' (ex: 'Recomenda acompanhamento...', 'Recomenda-se que...').\n"
                     "- Retorne 'dados_medicos.laudo_psiquiatrico_segundo_laudo' como null.\n"
                 )
             elif laudo_role == "segundo":
@@ -723,6 +856,8 @@ def analyze_extractions_with_openai(
                 "Analise o texto a seguir e preencha os campos do schema. Retorne somente o JSON.\n"
                 + personal_data_policy
                 + laudo_policy
+                + conclusao_policy
+                + relatorio_escolar_policy
                 + "Texto:\n"
                 + chunk_text
             )
@@ -734,6 +869,8 @@ def analyze_extractions_with_openai(
 
             resp = call_openai_chat(model, messages, [FUNCTION_SCHEMA])
             chunk_structured = extract_from_response(resp)
+            if is_inss_doc:
+                _log_inss_extraction(source, chunk_idx, len(chunks), chunk_text, chunk_structured)
             if not structured_result:
                 structured_result = chunk_structured
             else:
@@ -756,7 +893,7 @@ def generate_docx_from_structured(structured: Dict[str, Any], template_path: str
         process_document(doc, replacements)
     else:
         doc = Document()
-        doc.add_paragraph("Template não encontrado. Preencha/ajuste 'template.docx'.")
+        doc.add_paragraph("Template não encontrado. Preencha/ajuste 'template_final_real.docx'.")
         doc.add_paragraph("Campos detectados:")
         for k, v in replacements.items():
             doc.add_paragraph(f"[{k}] = {v}")
@@ -767,7 +904,7 @@ def generate_docx_from_structured(structured: Dict[str, Any], template_path: str
     return out_path
 
 
-app = FastAPI(title="Extração de dados (PDF → JSON → DOCX)")
+app = FastAPI(title="Extração de dados (PDF/IMG → JSON → DOCX)")
 
 if os.path.isdir(STATIC_DIR):
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
@@ -813,14 +950,20 @@ async def api_extract(
     _cleanup_store()
     _cleanup_tasks()
 
-    if len(files) != 4:
-        raise HTTPException(status_code=400, detail="Envie exatamente 4 arquivos PDF.")
+    if len(files) < 1:
+        raise HTTPException(status_code=400, detail="Envie pelo menos 1 arquivo (PDF, PNG ou JPG).")
 
     # Valida e lê os arquivos
     file_contents: List[Tuple[bytes, str]] = []
+    allowed_extensions = ('.pdf', '.png', '.jpg', '.jpeg')
+    
     for f in files:
-        if not (f.filename or "").lower().endswith(".pdf"):
-            raise HTTPException(status_code=400, detail=f"Arquivo não é PDF: {f.filename}")
+        filename_lower = (f.filename or "").lower()
+        if not filename_lower.endswith(allowed_extensions):
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Arquivo deve ser PDF, PNG ou JPG: {f.filename}"
+            )
         content = await f.read()
         if not content:
             raise HTTPException(status_code=400, detail=f"Arquivo vazio: {f.filename}")
