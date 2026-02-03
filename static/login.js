@@ -1,19 +1,5 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
-
-// Firebase config
-const firebaseConfig = {
-  apiKey: "AIzaSyC5H6J8XkBAyiuv1wHCQMNVuxX1JnBU568",
-  authDomain: "horlandobraga-168fc.firebaseapp.com",
-  projectId: "horlandobraga-168fc",
-  storageBucket: "horlandobraga-168fc.firebasestorage.app",
-  messagingSenderId: "405988871259",
-  appId: "1:405988871259:web:ff0ef83ba7e118d19b837e",
-  measurementId: "G-H024RSDR79",
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+// ⚠️ MODO MOCK - Login sem validação real (apenas para desenvolvimento)
+// Qualquer email/senha será aceito
 
 // Elements
 const loginForm = document.getElementById("loginForm");
@@ -27,15 +13,13 @@ function setStatus(message, type = "") {
   statusEl.className = "status" + (type ? ` ${type}` : "");
 }
 
-// Check if already logged in
-auth.onAuthStateChanged((user) => {
-  if (user) {
-    // Already logged in, redirect to main app
-    window.location.href = "/";
-  }
-});
+// Check if already "logged in" (mock)
+const mockUser = localStorage.getItem("mockUser");
+if (mockUser) {
+  window.location.href = "/";
+}
 
-// Login form submit
+// Mock login - aceita qualquer credencial
 loginForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   
@@ -50,30 +34,39 @@ loginForm.addEventListener("submit", async (e) => {
   loginBtn.disabled = true;
   setStatus("Entrando...", "loading");
   
+  // Simula delay de rede
+  await new Promise(resolve => setTimeout(resolve, 800));
+  
   try {
-    await signInWithEmailAndPassword(auth, email, password);
+    // Mock: Salva "usuário" no localStorage
+    const mockUserData = {
+      email: email,
+      uid: "mock-uid-" + Date.now(),
+      displayName: email.split("@")[0],
+      emailVerified: true
+    };
+    
+    localStorage.setItem("mockUser", JSON.stringify(mockUserData));
+    
+    // Gera um token fake para o backend aceitar
+    const mockToken = btoa(JSON.stringify({
+      uid: mockUserData.uid,
+      email: mockUserData.email,
+      exp: Date.now() + 3600000 // 1 hora
+    }));
+    
+    localStorage.setItem("mockToken", mockToken);
+    
     setStatus("Login realizado! Redirecionando...", "success");
     
-    // Redirect to main app after successful login
+    // Redirect to main app
     setTimeout(() => {
       window.location.href = "/";
     }, 500);
+    
   } catch (error) {
-    console.error("Login error:", error);
-    
-    let errorMessage = "Erro ao fazer login. Tente novamente.";
-    
-    if (error.code === "auth/user-not-found" || error.code === "auth/wrong-password") {
-      errorMessage = "E-mail ou senha incorretos.";
-    } else if (error.code === "auth/invalid-email") {
-      errorMessage = "E-mail inválido.";
-    } else if (error.code === "auth/too-many-requests") {
-      errorMessage = "Muitas tentativas. Tente novamente mais tarde.";
-    } else if (error.code === "auth/network-request-failed") {
-      errorMessage = "Erro de conexão. Verifique sua internet.";
-    }
-    
-    setStatus(errorMessage, "error");
+    console.error("Mock login error:", error);
+    setStatus("Erro inesperado. Tente novamente.", "error");
   } finally {
     loginBtn.disabled = false;
   }

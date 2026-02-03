@@ -1,19 +1,9 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+// ⚠️ MODO MOCK - Auth mockado sem Firebase (apenas para desenvolvimento)
 
-// Firebase JS SDK v7.20.0+ (measurementId opcional)
-const firebaseConfig = {
-  apiKey: "AIzaSyC5H6J8XkBAyiuv1wHCQMNVuxX1JnBU568",
-  authDomain: "horlandobraga-168fc.firebaseapp.com",
-  projectId: "horlandobraga-168fc",
-  storageBucket: "horlandobraga-168fc.firebasestorage.app",
-  messagingSenderId: "405988871259",
-  appId: "1:405988871259:web:ff0ef83ba7e118d19b837e",
-  measurementId: "G-H024RSDR79",
+// Mock auth object
+const auth = {
+  currentUser: null
 };
-
-const firebaseApp = initializeApp(firebaseConfig);
-const auth = getAuth(firebaseApp);
 
 const els = {
   form: document.getElementById("uploadForm"),
@@ -534,47 +524,57 @@ els.logoutBtn.addEventListener("click", async () => {
     cachedIdToken = null;
     tokenExpiryTime = 0;
     
-    await signOut(auth);
+    // Mock: Remove do localStorage
+    localStorage.removeItem("mockUser");
+    localStorage.removeItem("mockToken");
+    
     window.location.href = "/login";
   } catch (err) {
     setStatus(err?.message || "Falha ao sair.", "error");
   }
 });
 
-onAuthStateChanged(auth, async (user) => {
-  const previousUser = currentUser;
-  currentUser = user || null;
+// Mock: Verifica se usuário está "logado" via localStorage
+function checkMockAuth() {
+  const mockUserStr = localStorage.getItem("mockUser");
+  const mockToken = localStorage.getItem("mockToken");
   
-  // Limpa cache se o usuário mudou
-  if (!currentUser || (previousUser && previousUser.uid !== currentUser?.uid)) {
-    cachedIdToken = null;
-    tokenExpiryTime = 0;
-  }
-  
-  // If not logged in, redirect to login page
-  if (!currentUser) {
-    console.log("Nenhum usuário autenticado, redirecionando para login");
+  if (!mockUserStr || !mockToken) {
+    console.log("Nenhum usuário mockado, redirecionando para login");
     window.location.href = "/login";
     return;
   }
   
   try {
-    // Verifica se o token é válido e força primeira renovação
-    const idToken = await currentUser.getIdToken(false);
-    cachedIdToken = idToken;
+    const mockUserData = JSON.parse(mockUserStr);
+    
+    // Cria um objeto mockado com getIdToken
+    currentUser = {
+      uid: mockUserData.uid,
+      email: mockUserData.email,
+      displayName: mockUserData.displayName,
+      emailVerified: mockUserData.emailVerified,
+      getIdToken: async (forceRefresh) => {
+        // Retorna o mock token
+        return localStorage.getItem("mockToken") || "";
+      }
+    };
+    
+    auth.currentUser = currentUser;
+    cachedIdToken = mockToken;
     tokenExpiryTime = Date.now() + (55 * 60 * 1000);
-    console.log("Usuário autenticado:", currentUser.email);
+    
+    console.log("✅ MODO MOCK - Usuário mockado:", currentUser.email);
   } catch (error) {
-    console.error("Erro ao verificar token:", error);
-    cachedIdToken = null;
-    tokenExpiryTime = 0;
-    setStatus("Sessão inválida. Redirecionando para login...", "error");
-    await signOut(auth);
-    setTimeout(() => {
-      window.location.href = "/login";
-    }, 1500);
+    console.error("Erro ao verificar mock auth:", error);
+    localStorage.removeItem("mockUser");
+    localStorage.removeItem("mockToken");
+    window.location.href = "/login";
   }
-});
+}
+
+// Executa verificação de auth mockado
+checkMockAuth();
 
 async function pollTaskStatus(taskId) {
   const maxAttempts = 300; // 5 minutos (300 * 1 segundo)
@@ -633,7 +633,9 @@ async function pollTaskStatus(taskId) {
         }
         
         setStatus("Sessão expirada. Redirecionando para login...", "error");
-        await signOut(auth);
+        // Mock: Remove do localStorage
+        localStorage.removeItem("mockUser");
+        localStorage.removeItem("mockToken");
         setTimeout(() => {
           window.location.href = "/login";
         }, 1500);

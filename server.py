@@ -130,7 +130,10 @@ def _init_firebase_admin() -> firebase_admin.App:
 
 
 def require_firebase_user(authorization: Optional[str] = Header(default=None)) -> Dict[str, Any]:
-    """Dependency do FastAPI: exige Authorization: Bearer <idToken> e valida com firebase-admin."""
+    """Dependency do FastAPI: exige Authorization: Bearer <idToken> e valida com firebase-admin.
+    
+    ⚠️ MODO MOCK: Aceita tokens mockados (base64) sem validação Firebase.
+    """
     if not authorization or not isinstance(authorization, str):
         print("[AUTH] Cabeçalho Authorization ausente ou inválido")
         raise HTTPException(status_code=401, detail="Não autenticado. Envie Authorization: Bearer <idToken>.")
@@ -144,6 +147,18 @@ def require_firebase_user(authorization: Optional[str] = Header(default=None)) -
         raise HTTPException(status_code=401, detail="Token ausente. Use Authorization: Bearer <idToken>.")
 
     try:
+        # MODO MOCK: Tenta decodificar como base64 (mock token)
+        import base64
+        try:
+            decoded_bytes = base64.b64decode(token)
+            decoded = json.loads(decoded_bytes.decode('utf-8'))
+            if isinstance(decoded, dict) and decoded.get("uid") and decoded.get("email"):
+                print(f"[AUTH MOCK] ✅ Token mockado aceito para: {decoded.get('email')}")
+                return decoded
+        except Exception:
+            pass  # Se falhar, tenta validar com Firebase
+        
+        # Validação Firebase original (caso não seja mock)
         _init_firebase_admin()
         check_revoked = os.environ.get("FIREBASE_CHECK_REVOKED", "").strip() in ("1", "true", "yes", "on")
         decoded = firebase_auth.verify_id_token(token, check_revoked=check_revoked)
