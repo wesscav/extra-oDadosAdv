@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+.cursor/
+
+# Git
+.git/
+.gitignore
+
+# Environment files
+.env
+.ENV
+
+# Arquivos temporários
+*.pdf
+!laudo_digital.pdf
+extraction_*.json
+template_gerado_*.docx
+teste.txt
+
+# Logs
+logs/
+*.log
+
+# Testes
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Documentação
+*.md
+!README.md
+
+# Credenciais Firebase (NUNCA incluir)
+*firebase-adminsdk*.json
+serviceAccountKey*.json
+horlandobraga-168fc-firebase-adminsdk*.json
