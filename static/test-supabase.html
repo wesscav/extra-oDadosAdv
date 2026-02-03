@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste - Supabase Auth</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .log {
+            background: #f0f0f0;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .log-item {
+            margin: 5px 0;
+            padding: 5px;
+        }
+        .log-item.success { color: green; }
+        .log-item.error { color: red; }
+        .log-item.info { color: blue; }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        input {
+            padding: 8px;
+            margin: 5px;
+            width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Teste de Autenticação Supabase</h1>
+    
+    <h2>1. Verificação Inicial</h2>
+    <button onclick="testConfig()">Testar Config do Backend</button>
+    <button onclick="testSupabaseSDK()">Testar SDK do Supabase</button>
+    <button onclick="testInitSupabase()">Inicializar Supabase</button>
+    
+    <h2>2. Teste de Login</h2>
+    <div>
+        <input type="email" id="testEmail" placeholder="Email" value="test@example.com">
+        <input type="password" id="testPassword" placeholder="Senha" value="123456">
+        <button onclick="testLogin()">Testar Login</button>
+    </div>
+    
+    <h2>3. Logs</h2>
+    <button onclick="clearLogs()">Limpar Logs</button>
+    <div class="log" id="logContainer"></div>
+
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/static/supabase-client.js"></script>
+    
+    <script>
+        const logContainer = document.getElementById('logContainer');
+        
+        function addLog(message, type = 'info') {
+            const item = document.createElement('div');
+            item.className = 'log-item ' + type;
+            item.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logContainer.appendChild(item);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            console.log(`[${type.toUpperCase()}]`, message);
+        }
+        
+        function clearLogs() {
+            logContainer.innerHTML = '';
+        }
+        
+        async function testConfig() {
+            addLog('🔄 Testando /api/supabase-config...');
+            try {
+                const response = await fetch('/api/supabase-config');
+                const config = await response.json();
+                addLog('✅ Config recebida: ' + JSON.stringify(config), 'success');
+            } catch (error) {
+                addLog('❌ Erro ao buscar config: ' + error.message, 'error');
+            }
+        }
+        
+        function testSupabaseSDK() {
+            addLog('🔄 Verificando SDK do Supabase...');
+            if (typeof supabase === 'undefined') {
+                addLog('❌ SDK do Supabase não encontrado! O CDN não carregou.', 'error');
+            } else {
+                addLog('✅ SDK do Supabase carregado', 'success');
+            }
+            
+            if (typeof window.SupabaseAuth === 'undefined') {
+                addLog('❌ SupabaseAuth não encontrado!', 'error');
+            } else {
+                addLog('✅ SupabaseAuth disponível', 'success');
+            }
+        }
+        
+        async function testInitSupabase() {
+            addLog('🔄 Inicializando Supabase...');
+            try {
+                await SupabaseAuth.init();
+                addLog('✅ Supabase inicializado com sucesso', 'success');
+            } catch (error) {
+                addLog('❌ Erro ao inicializar: ' + error.message, 'error');
+            }
+        }
+        
+        async function testLogin() {
+            const email = document.getElementById('testEmail').value;
+            const password = document.getElementById('testPassword').value;
+            
+            addLog(`🔄 Tentando login com: ${email}`);
+            
+            try {
+                const result = await SupabaseAuth.signIn(email, password);
+                addLog('✅ Login bem-sucedido!', 'success');
+                addLog('   User: ' + JSON.stringify(result.user.email));
+                addLog('   Session: ' + (result.session ? 'OK' : 'NULL'));
+            } catch (error) {
+                addLog('❌ Erro no login: ' + error.message, 'error');
+                if (error.message.includes('Invalid login credentials')) {
+                    addLog('   → Credenciais inválidas (esperado se o usuário não existe)', 'info');
+                }
+            }
+        }
+        
+        // Testes automáticos ao carregar
+        window.addEventListener('load', () => {
+            addLog('🚀 Página carregada, iniciando testes...');
+            setTimeout(() => {
+                testSupabaseSDK();
+            }, 100);
+        });
+    </script>
+</body>
+</html>

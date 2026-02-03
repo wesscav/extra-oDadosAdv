@@ -1,9 +1,4 @@
-// ⚠️ MODO MOCK - Auth mockado sem Firebase (apenas para desenvolvimento)
-
-// Mock auth object
-const auth = {
-  currentUser: null
-};
+// Autenticação real com Supabase
 
 const els = {
   form: document.getElementById("uploadForm"),
@@ -24,10 +19,9 @@ const els = {
 };
 
 let currentUser = null;
+let currentSession = null;
 let currentToken = null;
 let structuredDraft = null;
-let cachedIdToken = null;
-let tokenExpiryTime = 0;
 
 const ALWAYS_NACIONALIDADE = "brasileiro(a)";
 
@@ -260,34 +254,33 @@ function autosizeTextarea(el) {
   el.style.height = `${el.scrollHeight}px`;
 }
 
-async function authHeaders(extraHeaders = {}, forceRefresh = false) {
-  if (!currentUser) {
-    console.error("currentUser is null");
+async function authHeaders(extraHeaders = {}) {
+  if (!currentSession || !currentSession.access_token) {
+    console.error("Sessão não encontrada");
     throw new Error("Você precisa estar logado.");
   }
   
   try {
-    const now = Date.now();
-    
-    // Usa token em cache se ainda válido (válido por ~55 minutos)
-    if (!forceRefresh && cachedIdToken && tokenExpiryTime > now) {
-      return { ...extraHeaders, Authorization: `Bearer ${cachedIdToken}` };
+    // SEMPRE tenta renovar a sessão antes de fazer uma requisição
+    // Isso garante que sempre temos um token válido
+    try {
+      console.log("🔄 Renovando sessão antes da requisição...");
+      const newSession = await SupabaseAuth.getSession();
+      if (newSession && newSession.access_token) {
+        currentSession = newSession;
+        console.log("✅ Sessão renovada com sucesso");
+      }
+    } catch (refreshError) {
+      console.warn("⚠️ Não foi possível renovar a sessão, usando token atual:", refreshError);
+      // Continua com o token atual se a renovação falhar
     }
     
-    // Renova o token apenas se forceRefresh=true ou se expirou/não existe
-    const idToken = await currentUser.getIdToken(forceRefresh);
-    console.log("Token obtido/renovado, tamanho:", idToken?.length);
-    
-    // Armazena em cache (expira em 55 minutos)
-    cachedIdToken = idToken;
-    tokenExpiryTime = now + (55 * 60 * 1000);
-    
-    return { ...extraHeaders, Authorization: `Bearer ${idToken}` };
+    return { 
+      ...extraHeaders, 
+      Authorization: `Bearer ${currentSession.access_token}` 
+    };
   } catch (error) {
     console.error("Erro ao obter token:", error);
-    // Limpa cache em caso de erro
-    cachedIdToken = null;
-    tokenExpiryTime = 0;
     throw new Error("Falha ao obter token de autenticação. Faça login novamente.");
   }
 }
@@ -520,61 +513,63 @@ els.cancelBtn.addEventListener("click", closeModal);
 
 els.logoutBtn.addEventListener("click", async () => {
   try {
-    // Limpa cache do token
-    cachedIdToken = null;
-    tokenExpiryTime = 0;
+    // Faz logout no Supabase
+    await SupabaseAuth.signOut();
     
-    // Mock: Remove do localStorage
-    localStorage.removeItem("mockUser");
-    localStorage.removeItem("mockToken");
+    // Limpa variáveis locais
+    currentUser = null;
+    currentSession = null;
     
+    console.log("Logout realizado com sucesso");
     window.location.href = "/login";
   } catch (err) {
+    console.error("Erro ao fazer logout:", err);
     setStatus(err?.message || "Falha ao sair.", "error");
   }
 });
 
-// Mock: Verifica se usuário está "logado" via localStorage
-function checkMockAuth() {
-  const mockUserStr = localStorage.getItem("mockUser");
-  const mockToken = localStorage.getItem("mockToken");
-  
-  if (!mockUserStr || !mockToken) {
-    console.log("Nenhum usuário mockado, redirecionando para login");
-    window.location.href = "/login";
-    return;
-  }
-  
+// Verifica autenticação com Supabase
+async function checkAuth() {
   try {
-    const mockUserData = JSON.parse(mockUserStr);
+    await SupabaseAuth.init();
     
-    // Cria um objeto mockado com getIdToken
-    currentUser = {
-      uid: mockUserData.uid,
-      email: mockUserData.email,
-      displayName: mockUserData.displayName,
-      emailVerified: mockUserData.emailVerified,
-      getIdToken: async (forceRefresh) => {
-        // Retorna o mock token
-        return localStorage.getItem("mockToken") || "";
+    const session = await SupabaseAuth.getSession();
+    
+    if (!session) {
+      console.log("Nenhuma sessão ativa, redirecionando para login");
+      window.location.href = "/login";
+      return;
+    }
+    
+    currentSession = session;
+    currentUser = await SupabaseAuth.getUser();
+    
+    if (!currentUser) {
+      console.log("Usuário não encontrado, redirecionando para login");
+      window.location.href = "/login";
+      return;
+    }
+    
+    console.log("✅ Usuário autenticado:", currentUser.email);
+    
+    // Monitora mudanças na autenticação
+    SupabaseAuth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        window.location.href = "/login";
+      } else if (event === 'TOKEN_REFRESHED') {
+        currentSession = session;
+        console.log("Token renovado automaticamente");
       }
-    };
+    });
     
-    auth.currentUser = currentUser;
-    cachedIdToken = mockToken;
-    tokenExpiryTime = Date.now() + (55 * 60 * 1000);
-    
-    console.log("✅ MODO MOCK - Usuário mockado:", currentUser.email);
   } catch (error) {
-    console.error("Erro ao verificar mock auth:", error);
-    localStorage.removeItem("mockUser");
-    localStorage.removeItem("mockToken");
+    console.error("Erro ao verificar autenticação:", error);
     window.location.href = "/login";
   }
 }
 
-// Executa verificação de auth mockado
-checkMockAuth();
+// Executa verificação de autenticação
+checkAuth();
 
 async function pollTaskStatus(taskId) {
   const maxAttempts = 300; // 5 minutos (300 * 1 segundo)
@@ -582,8 +577,20 @@ async function pollTaskStatus(taskId) {
 
   while (attempts < maxAttempts) {
     try {
-      // NÃO força renovação do token em cada polling - usa cache
-      const headersObj = await authHeaders({}, false);
+      // Renova a sessão a cada 10 tentativas (a cada 10 segundos) para manter o token válido
+      if (attempts % 10 === 0) {
+        try {
+          const newSession = await SupabaseAuth.getSession();
+          if (newSession && newSession.access_token) {
+            currentSession = newSession;
+            console.log("🔄 Token renovado durante polling (tentativa " + attempts + ")");
+          }
+        } catch (refreshErr) {
+          console.warn("⚠️ Não foi possível renovar token durante polling:", refreshErr);
+        }
+      }
+      
+      const headersObj = await authHeaders({});
       const headers = new Headers();
       for (const [key, value] of Object.entries(headersObj)) {
         headers.append(key, value);
@@ -595,47 +602,25 @@ async function pollTaskStatus(taskId) {
       });
 
       if (resp.status === 401) {
-        // Se receber 401, tenta uma vez com token renovado
-        if (attempts > 0) {
-          try {
-            console.log("Token expirado durante polling, renovando...");
-            const refreshedHeaders = await authHeaders({}, true);
-            const newHeaders = new Headers();
-            for (const [key, value] of Object.entries(refreshedHeaders)) {
-              newHeaders.append(key, value);
-            }
-            
-            const retryResp = await fetch(`/api/task/${taskId}`, {
-              method: "GET",
-              headers: newHeaders,
-            });
-            
-            if (retryResp.ok) {
-              const task = await retryResp.json();
-              
-              if (task.message) {
-                setStatus(`${task.message} (${task.progress}%)`);
-              }
-
-              if (task.status === "completed") {
-                return task.result;
-              } else if (task.status === "failed") {
-                throw new Error(task.error || "Falha ao processar documentos.");
-              }
-
-              await new Promise((resolve) => setTimeout(resolve, 1000));
-              attempts++;
-              continue;
-            }
-          } catch (retryErr) {
-            console.error("Erro ao renovar token:", retryErr);
+        // NÃO redireciona imediatamente - tenta renovar o token
+        console.warn("⚠️ Recebido 401, tentando renovar token...");
+        try {
+          const newSession = await SupabaseAuth.getSession();
+          if (newSession && newSession.access_token) {
+            currentSession = newSession;
+            console.log("✅ Token renovado após 401, continuando polling...");
+            // Tenta novamente com o novo token
+            attempts++;
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            continue;
           }
+        } catch (refreshErr) {
+          console.error("❌ Falha ao renovar token após 401:", refreshErr);
         }
         
+        // Só redireciona se realmente não conseguiu renovar
         setStatus("Sessão expirada. Redirecionando para login...", "error");
-        // Mock: Remove do localStorage
-        localStorage.removeItem("mockUser");
-        localStorage.removeItem("mockToken");
+        await SupabaseAuth.signOut();
         setTimeout(() => {
           window.location.href = "/login";
         }, 1500);
@@ -715,8 +700,23 @@ els.form.addEventListener("submit", async (e) => {
     });
     
     if (resp.status === 401) {
+      // Tenta renovar o token antes de desistir
+      console.warn("⚠️ Recebido 401 no /api/extract, tentando renovar token...");
+      try {
+        const newSession = await SupabaseAuth.getSession();
+        if (newSession && newSession.access_token) {
+          currentSession = newSession;
+          console.log("✅ Token renovado, tente novamente");
+          setStatus("Sessão renovada. Por favor, tente enviar novamente.", "error");
+          els.submitBtn.disabled = false;
+          return;
+        }
+      } catch (refreshErr) {
+        console.error("❌ Falha ao renovar token:", refreshErr);
+      }
+      
       setStatus("Sessão expirada. Redirecionando para login...", "error");
-      await signOut(auth);
+      await SupabaseAuth.signOut();
       setTimeout(() => {
         window.location.href = "/login";
       }, 1500);
@@ -783,9 +783,26 @@ els.confirmBtn.addEventListener("click", async () => {
     
     // Verifica se é erro de autenticação
     if (resp.status === 401) {
+      // Tenta renovar o token antes de desistir
+      console.warn("⚠️ Recebido 401 no /api/generate-docx, tentando renovar token...");
+      try {
+        const newSession = await SupabaseAuth.getSession();
+        if (newSession && newSession.access_token) {
+          currentSession = newSession;
+          console.log("✅ Token renovado, tente gerar o DOCX novamente");
+          setStatus("Sessão renovada. Por favor, clique em Confirmar novamente.", "error");
+          els.confirmBtn.disabled = false;
+          els.cancelBtn.disabled = false;
+          els.closeModalBtn.disabled = false;
+          return;
+        }
+      } catch (refreshErr) {
+        console.error("❌ Falha ao renovar token:", refreshErr);
+      }
+      
       setStatus("Sessão expirada. Redirecionando para login...", "error");
       closeModal();
-      await signOut(auth);
+      await SupabaseAuth.signOut();
       setTimeout(() => {
         window.location.href = "/login";
       }, 1500);

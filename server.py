@@ -21,9 +21,9 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from docx import Document
-import firebase_admin
-from firebase_admin import auth as firebase_auth
-from firebase_admin import credentials as firebase_credentials
+from supabase import create_client, Client
+import jwt
+from jwt import PyJWTError
 
 from analyze_with_openai import (
     DEFAULT_MODEL,
@@ -49,7 +49,7 @@ _STORE: Dict[str, Dict[str, Any]] = {}
 _STORE_TTL_SECONDS = 60 * 30  # 30 minutos
 _ALWAYS_NACIONALIDADE = "brasileiro(a)"
 
-_FIREBASE_APP: Optional[firebase_admin.App] = None
+_SUPABASE_CLIENT: Optional[Client] = None
 
 # Sistema de tarefas em background
 class TaskStatus(str, Enum):
@@ -99,78 +99,84 @@ _TASKS: Dict[str, Task] = {}
 _TASKS_LOCK = threading.Lock()
 
 
-def _init_firebase_admin() -> firebase_admin.App:
-    """Inicializa firebase-admin (lazy) para validação de idToken."""
-    global _FIREBASE_APP
-    if _FIREBASE_APP is not None:
-        return _FIREBASE_APP
+def _init_supabase_client() -> Client:
+    """Inicializa cliente Supabase (lazy) para validação de tokens."""
+    global _SUPABASE_CLIENT
+    if _SUPABASE_CLIENT is not None:
+        return _SUPABASE_CLIENT
 
-    # 1) Path para serviceAccountKey.json
-    sa_path = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON")
-    if sa_path:
-        cred = firebase_credentials.Certificate(sa_path)
-        _FIREBASE_APP = firebase_admin.initialize_app(cred, {"projectId": os.environ.get("FIREBASE_PROJECT_ID")})
-        return _FIREBASE_APP
-
-    # 2) JSON string do service account
-    sa_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT")
-    if sa_json:
-        info = json.loads(sa_json)
-        cred = firebase_credentials.Certificate(info)
-        _FIREBASE_APP = firebase_admin.initialize_app(cred, {"projectId": os.environ.get("FIREBASE_PROJECT_ID")})
-        return _FIREBASE_APP
-
-    # 3) GOOGLE_APPLICATION_CREDENTIALS (ADC) ou credenciais padrão
-    options: Dict[str, Any] = {}
-    project_id = os.environ.get("FIREBASE_PROJECT_ID")
-    if project_id:
-        options["projectId"] = project_id
-    _FIREBASE_APP = firebase_admin.initialize_app(options=options or None)
-    return _FIREBASE_APP
-
-
-def require_firebase_user(authorization: Optional[str] = Header(default=None)) -> Dict[str, Any]:
-    """Dependency do FastAPI: exige Authorization: Bearer <idToken> e valida com firebase-admin.
+    supabase_url = os.environ.get("SUPABASE_URL")
+    supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
     
-    ⚠️ MODO MOCK: Aceita tokens mockados (base64) sem validação Firebase.
+    if not supabase_url or not supabase_key:
+        raise ValueError(
+            "Credenciais do Supabase não configuradas. "
+            "Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no arquivo .env"
+        )
+    
+    _SUPABASE_CLIENT = create_client(supabase_url, supabase_key)
+    print("[SUPABASE] Cliente inicializado com sucesso")
+    return _SUPABASE_CLIENT
+
+
+def require_supabase_user(authorization: Optional[str] = Header(default=None)) -> Dict[str, Any]:
+    """Dependency do FastAPI: exige Authorization: Bearer <access_token> e valida com Supabase.
+    
+    Valida o token JWT do Supabase e retorna os dados do usuário.
     """
     if not authorization or not isinstance(authorization, str):
         print("[AUTH] Cabeçalho Authorization ausente ou inválido")
-        raise HTTPException(status_code=401, detail="Não autenticado. Envie Authorization: Bearer <idToken>.")
+        raise HTTPException(status_code=401, detail="Não autenticado. Envie Authorization: Bearer <access_token>.")
+    
     if not authorization.lower().startswith("bearer "):
         print(f"[AUTH] Cabeçalho Authorization não começa com 'Bearer ': {authorization[:20]}...")
-        raise HTTPException(status_code=401, detail="Cabeçalho Authorization inválido. Use Bearer <idToken>.")
+        raise HTTPException(status_code=401, detail="Cabeçalho Authorization inválido. Use Bearer <access_token>.")
 
     token = authorization.split(" ", 1)[1].strip()
     if not token:
         print("[AUTH] Token vazio após split")
-        raise HTTPException(status_code=401, detail="Token ausente. Use Authorization: Bearer <idToken>.")
+        raise HTTPException(status_code=401, detail="Token ausente. Use Authorization: Bearer <access_token>.")
 
     try:
-        # MODO MOCK: Tenta decodificar como base64 (mock token)
-        import base64
-        try:
-            decoded_bytes = base64.b64decode(token)
-            decoded = json.loads(decoded_bytes.decode('utf-8'))
-            if isinstance(decoded, dict) and decoded.get("uid") and decoded.get("email"):
-                print(f"[AUTH MOCK] ✅ Token mockado aceito para: {decoded.get('email')}")
-                return decoded
-        except Exception:
-            pass  # Se falhar, tenta validar com Firebase
+        # Inicializa cliente Supabase
+        supabase = _init_supabase_client()
         
-        # Validação Firebase original (caso não seja mock)
-        _init_firebase_admin()
-        check_revoked = os.environ.get("FIREBASE_CHECK_REVOKED", "").strip() in ("1", "true", "yes", "on")
-        decoded = firebase_auth.verify_id_token(token, check_revoked=check_revoked)
-        if not isinstance(decoded, dict) or not decoded.get("uid"):
-            print("[AUTH] Token decodificado mas sem uid válido")
-            raise ValueError("Decoded token inválido.")
-        print(f"[AUTH] Token válido para usuário: {decoded.get('email', decoded.get('uid'))}")
-        return decoded
+        # Valida o token com Supabase
+        response = supabase.auth.get_user(token)
+        
+        if not response or not response.user:
+            print("[AUTH] Token inválido ou usuário não encontrado")
+            raise HTTPException(status_code=401, detail="Token inválido ou expirado.")
+        
+        user = response.user
+        
+        # Extrai informações do usuário
+        user_data = {
+            "uid": user.id,
+            "email": user.email,
+            "email_verified": user.email_confirmed_at is not None,
+            "created_at": user.created_at,
+        }
+        
+        # Adiciona metadados do usuário se disponíveis
+        if hasattr(user, 'user_metadata') and user.user_metadata:
+            user_data["metadata"] = user.user_metadata
+        
+        print(f"[AUTH] ✅ Token válido para usuário: {user.email} (ID: {user.id})")
+        return user_data
+        
+    except HTTPException:
+        # Re-levanta HTTPException do Supabase
+        raise
     except Exception as e:
         # Log do erro real (para debug do servidor, não para o cliente)
         print(f"[AUTH] Erro ao validar token: {type(e).__name__}: {str(e)}")
-        # não vaza detalhes de validação/credencial para o cliente
+        
+        # Tratamento de erros específicos
+        if isinstance(e, PyJWTError):
+            raise HTTPException(status_code=401, detail="Token JWT inválido ou malformado.")
+        
+        # Erro genérico
         raise HTTPException(status_code=401, detail="Sessão inválida ou expirada. Faça login novamente.")
 
 
@@ -949,9 +955,27 @@ def login_page() -> str:
         return f.read()
 
 
+@app.get("/api/supabase-config")
+def api_supabase_config() -> Dict[str, str]:
+    """Retorna as configurações públicas do Supabase (URL e anon key)."""
+    supabase_url = os.environ.get("SUPABASE_URL")
+    supabase_anon_key = os.environ.get("SUPABASE_ANON_KEY")
+    
+    if not supabase_url or not supabase_anon_key:
+        raise HTTPException(
+            status_code=500, 
+            detail="Configurações do Supabase não encontradas no servidor."
+        )
+    
+    return {
+        "url": supabase_url,
+        "anonKey": supabase_anon_key,
+    }
+
+
 @app.post("/api/extract")
 async def api_extract(
-    _user: Dict[str, Any] = Depends(require_firebase_user),
+    _user: Dict[str, Any] = Depends(require_supabase_user),
     files: List[UploadFile] = File(...),
     model: str = DEFAULT_MODEL,
     pages_per_call: int = 0,
@@ -1016,7 +1040,7 @@ async def api_extract(
 @app.get("/api/task/{task_id}")
 def api_get_task_status(
     task_id: str,
-    _user: Dict[str, Any] = Depends(require_firebase_user),
+    _user: Dict[str, Any] = Depends(require_supabase_user),
 ) -> Dict[str, Any]:
     """Retorna o status de uma tarefa em background."""
     _cleanup_tasks()
@@ -1033,7 +1057,7 @@ def api_get_task_status(
 @app.post("/api/generate-docx")
 def api_generate_docx(
     payload: Dict[str, Any] = Body(...),
-    _user: Dict[str, Any] = Depends(require_firebase_user),
+    _user: Dict[str, Any] = Depends(require_supabase_user),
 ) -> FileResponse:
     _cleanup_store()
     token = payload.get("token")
