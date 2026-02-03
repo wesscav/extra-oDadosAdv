@@ -21,7 +21,6 @@ import json
 import os
 import sys
 import time
-import textwrap
 from typing import Any, Dict, List, Optional, Tuple
 
 try:
@@ -37,7 +36,7 @@ except Exception:
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 
-DEFAULT_MODEL = "gpt-4-0613"
+DEFAULT_MODEL = "gpt-4o-mini"  # Modelo mais econômico (~60% mais barato) mantendo boa acurácia para extração estruturada
 
 # Heurística para o "documento grande do INSS":
 # - se a página 1 contiver algum desses termos
@@ -50,8 +49,6 @@ INSS_KEYWORDS = [
     "INSS",
     "Instituto Nacional do Seguro Social"
 ]
-
-
 FUNCTION_SCHEMA = {
     "name": "extrair_campos_laudo",
     "description": "Extrai campos administrativos, médicos e processuais de um texto de laudo.",
@@ -113,6 +110,7 @@ FUNCTION_SCHEMA = {
                     "diagnostico_final_tratamento": {
                         "type": "object",
                         "properties": {
+                            "conclusao_medica": {"type": ["string", "null"]},
                             "deficiencia_e_CID": {"type": ["string", "null"]},
                             "deficiencia_associada_e_CID": {"type": ["string", "null"]},
                             "medicamento_prescrito": {"type": ["string", "null"]},
@@ -378,56 +376,76 @@ def call_openai_chat(model: str, messages: List[Dict[str, Any]], functions: List
     if not api_key:
         raise RuntimeError("OPENAI_API_KEY environment variable is not set")
 
-    openai.api_key = api_key
-
-    # Use ChatCompletion API with function calling
-    def _normalize_resp(obj: Any) -> Dict[str, Any]:
-        """Normalize OpenAI SDK response object to a plain dict."""
-        if isinstance(obj, dict):
-            return obj
-        # OpenAI OpenAIObject usually has to_dict()
-        try:
-            if hasattr(obj, "to_dict"):
-                return obj.to_dict()
-        except Exception:
-            pass
-        # Try to convert via JSON string
-        try:
-            return json.loads(str(obj))
-        except Exception:
-            # Fallback: expose minimal representation
-            return {"raw": str(obj)}
-
+    # Use new OpenAI SDK v1+ API (openai >= 1.0.0)
+    print(f"[OpenAI] Chamando API com modelo: {model}")
+    
     try:
-        # Old-style call (may raise APIRemovedInV1 on newer openai versions)
-        resp = openai.ChatCompletion.create(
+        # Convert functions to tools format (new API)
+        tools = [{"type": "function", "function": func} for func in functions]
+        
+        # Create client instance
+        client = openai.OpenAI(api_key=api_key)
+        
+        # Call chat completions with tools
+        resp = client.chat.completions.create(
             model=model,
             messages=messages,
-            functions=functions,
-            function_call="auto",
+            tools=tools,
+            tool_choice="auto",
             temperature=0,
             max_tokens=2000,
         )
-        return _normalize_resp(resp)
+        
+        print(f"[OpenAI] Chamada bem-sucedida")
+        
+        # Convert response to dict format compatible with old code
+        result = {
+            "id": resp.id,
+            "object": resp.object,
+            "created": resp.created,
+            "model": resp.model,
+            "choices": []
+        }
+        
+        for choice in resp.choices:
+            choice_dict = {
+                "index": choice.index,
+                "message": {
+                    "role": choice.message.role,
+                    "content": choice.message.content,
+                },
+                "finish_reason": choice.finish_reason
+            }
+            
+            # Handle tool calls (new format) -> convert to function_call (old format)
+            if choice.message.tool_calls:
+                tool_call = choice.message.tool_calls[0]  # Get first tool call
+                choice_dict["message"]["function_call"] = {
+                    "name": tool_call.function.name,
+                    "arguments": tool_call.function.arguments
+                }
+            
+            result["choices"].append(choice_dict)
+        
+        return result
+        
     except Exception as e:
-        # Detect removed API (new openai package uses nested namespaces)
         msg = str(e)
-        # Handle API removal or rate limit specifically to give clearer guidance
-        if "RateLimitError" in msg or (hasattr(e, "__class__") and e.__class__.__name__ == "RateLimitError"):
+        print(f"[OpenAI] Erro na chamada: {type(e).__name__}: {msg}")
+        
+        # Tenta extrair mais detalhes do erro
+        if hasattr(e, 'response'):
+            print(f"[OpenAI] Response do erro: {e.response}")
+        if hasattr(e, 'status_code'):
+            print(f"[OpenAI] Status code: {e.status_code}")
+        if hasattr(e, 'body'):
+            print(f"[OpenAI] Body do erro: {e.body}")
+        
+        # Handle rate limit
+        if "RateLimitError" in type(e).__name__:
             raise RuntimeError("Rate limit reached. Try again after a short wait, reduce request rate or check your account usage/quotas on platform.openai.com.")
-        if "APIRemovedInV1" in msg or (hasattr(e, "__class__") and e.__class__.__name__ == "APIRemovedInV1"):
-            # Try the new SDK call: openai.chat.completions.create
-            if hasattr(openai, "chat") and hasattr(openai.chat, "completions"):
-                resp = openai.chat.completions.create(
-                    model=model,
-                    messages=messages,
-                    functions=functions,
-                    function_call="auto",
-                    temperature=0,
-                    max_tokens=2000,
-                )
-                return _normalize_resp(resp)
-        # re-raise if we can't handle it
+        
+        # re-raise the original error
         raise
 
 
@@ -507,6 +525,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     system_msg = (
         "Você é um assistente que analisa laudos e extrai campos jurídicos e médicos. "
         "Retorne apenas JSON seguindo o schema de função. Se o dado não existir, retorne null. "
+        "Datas: use formato DD/MM/YYYY (ex: 05/12/2024). "
         "Se houver baixa confiança, inclua o valor e marque '[confiança baixa]'."
     )
 
@@ -542,16 +561,9 @@ def main(argv: Optional[List[str]] = None) -> int:
                 continue
 
             # Regras de extração para dados pessoais:
-            # - dados pessoais do paciente/parte autora (qualificacao_parte_autora.*) devem vir EXCLUSIVAMENTE
-            #   do PDF do INSS, e especificamente das páginas que contêm "outorgante".
-            # - nunca usar "Horlando Braga Filho" como dados pessoais do paciente.
+            # - dados pessoais do paciente/parte autora (qualificacao_parte_autora.*) devem vir do PDF do INSS.
+            # - nunca usar "Horlando Braga Filho" ou dados de "Procuradores / Representantes Legais" como dados pessoais do paciente.
             is_inss_doc = _is_inss_document(ex, args.inss_min_total_pages)
-            outorgante_pages = _find_pages_containing(ex, page_numbers, "outorgante") if is_inss_doc else []
-            # fallback para documentos onde a seção esteja rotulada de outra forma
-            if is_inss_doc and not outorgante_pages:
-                outorgante_pages = _find_pages_containing(ex, page_numbers, "procuração")
-            if is_inss_doc and not outorgante_pages:
-                outorgante_pages = _find_pages_containing(ex, page_numbers, "procuracao")
 
             laudo_role = laudo_roles_by_source.get(source, "none")
 
@@ -564,6 +576,8 @@ def main(argv: Optional[List[str]] = None) -> int:
                 if not chunk_text.strip():
                     continue
 
+                personal_data_hint = ""  # análise em todas as páginas do INSS, sem restrição a seção específica
+
                 personal_data_policy = (
                     "POLÍTICA DE DADOS PESSOAIS (OBRIGATÓRIA):\n"
                     "- Os campos de 'qualificacao_parte_autora' (nome, nacionalidade, estado_civil, profissao, cpf, endereco_completo,\n"
@@ -572,12 +586,35 @@ def main(argv: Optional[List[str]] = None) -> int:
                 if is_inss_doc:
                     personal_data_policy += (
                         "- ESTE documento é o PDF do INSS.\n"
-                        f"- Extraia 'qualificacao_parte_autora' SOMENTE a partir da(s) página(s) que contém 'OUTORGANTE'. Páginas detectadas: {outorgante_pages or 'nenhuma'}.\n"
-                        "- Se não houver informação suficiente nessas páginas, retorne null (não adivinhe).\n"
-                        "- ATENÇÃO: pode haver nomes/CPFs de terceiros na procuração.\n"
-                        "  - Nunca use 'Horlando Braga Filho' (nem CPF/endereço dele) como dados pessoais do paciente/parte autora.\n"
-                        "  - Não confunda outorgante/outorgado com paciente. Só preencha representante_legal_* se o documento indicar explicitamente\n"
-                        "    que a pessoa é representante legal/responsável do paciente (pai/mãe/responsável legal), e ainda assim sem confundir com o paciente.\n"
+                        f"- Analise o conteúdo de todas as {len(page_numbers)} páginas e extraia 'qualificacao_parte_autora' de qualquer parte relevante do documento.\n"
+                        "- ATENÇÃO: NUNCA use dados da seção 'Procuradores / Representantes Legais' como dados do paciente.\n"
+                        "  - IGNORE 'Horlando Braga Filho' e seu CPF (028.951.113-59) - ele é o advogado/procurador, NÃO o paciente.\n"
+                        "\n"
+                        "REGRAS PARA REPRESENTANTE LEGAL (CRÍTICO):\n"
+                        "- Procure por seções com o título 'PROCURAÇÃO' ou texto contendo 'Outorgante' e 'representado (a) por'.\n"
+                        "- FORMATO TÍPICO DA PROCURAÇÃO:\n"
+                        "  'PROCURAÇÃO\n"
+                        "   Outorgante: [Nome do Paciente], brasileiro, [estado civil], [profissão], CPF: XXX.XXX.XXX-XX e RG: XXXXXXXXX,\n"
+                        "   representado (a) por [Nome do Representante Legal], CPF: XXX.XXX.XXX-XX e RG: XXXXXXXXX'\n"
+                        "\n"
+                        "- REGRA DE EXTRAÇÃO:\n"
+                        "  1. OUTORGANTE = PACIENTE (pessoa que dá a procuração) → Preencha 'nome', 'cpf' da qualificacao_parte_autora\n"
+                        "  2. REPRESENTADO POR = REPRESENTANTE LEGAL (quem representa o paciente) → Preencha:\n"
+                        "     - representante_legal_nome: nome completo que vem APÓS 'representado (a) por' ou 'representado(a) por'\n"
+                        "     - representante_legal_cpf: CPF que vem logo após o nome do representante\n"
+                        "     - representante_legal_rg: RG que vem logo após o CPF do representante\n"
+                        "\n"
+                        "- EXEMPLO REAL:\n"
+                        "  Texto: 'Outorgante: Heliabison Matias Correia, brasileiro, Solteiro(a), Estudante, CPF: 078.428.503-99\n"
+                        "         e RG: 2020096219-6, representado (a) por Daiane Cunha Matias, CPF: 021.409.413-81 e RG: 2004003002105'\n"
+                        "  EXTRAÇÃO CORRETA:\n"
+                        "  - nome: 'Heliabison Matias Correia'\n"
+                        "  - cpf: '078.428.503-99'\n"
+                        "  - representante_legal_nome: 'Daiane Cunha Matias'\n"
+                        "  - representante_legal_cpf: '021.409.413-81'\n"
+                        "  - representante_legal_rg: '2004003002105'\n"
+                        "\n"
+                        "- ATENÇÃO: NÃO confunda o representante legal (familiar/tutor na procuração) com o advogado/procurador (Horlando Braga Filho).\n"
                     )
                 else:
                     personal_data_policy += (
@@ -594,6 +631,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                     laudo_policy += (
                         "- ESTE documento é o PRIMEIRO LAUDO (laudo_principal).\n"
                         "- Preencha COMPLETAMENTE 'dados_medicos.laudo_principal' (incluindo nome_do_medico e especialidade_do_medico) e campos correlatos do laudo.\n"
+                        "- O campo 'trecho_clinico_relevante' (descrição do laudo) DEVE começar com 'Recomenda' (ex: 'Recomenda acompanhamento...', 'Recomenda-se que...').\n"
                         "- Retorne 'dados_medicos.laudo_psiquiatrico_segundo_laudo' como null (ou subcampos null).\n"
                     )
                 elif laudo_role == "segundo":
@@ -608,11 +646,27 @@ def main(argv: Optional[List[str]] = None) -> int:
                         "- Se não for um dos 2 laudos, retorne ambos os blocos de laudo como null.\n"
                     )
 
+                conclusao_policy = (
+                    "POLÍTICA DE CONCLUSÃO MÉDICA (OBRIGATÓRIA):\n"
+                    "- Extraia 'diagnostico_final_tratamento' dos laudos (deficiência/CID, medicamento, finalidade).\n"
+                    "- 'conclusao_medica': síntese textual da conclusão clínica do médico sobre o paciente "
+                    "(diagnóstico final, comprometimento, necessidade de acompanhamento). Preencha se houver nos laudos.\n"
+                )
+                relatorio_escolar_policy = (
+                    "POLÍTICA DO RELATÓRIO ESCOLAR (OBRIGATÓRIA):\n"
+                    "- Nos campos 'resumo' e 'resumo_continuacao' do relatorio_escolar: extraia SOMENTE o que é importante sobre o aluno "
+                    "(dificuldades, necessidades, limitações, recomendações, desempenho).\n"
+                    "- NÃO inclua texto introdutório como 'este relatório visa fornecer informações...', 'com foco nas necessidades especiais...' ou similares.\n"
+                )
+
                 user_msg = (
                     f"Documento fonte: {source}\n"
                     + "Analise o texto a seguir e preencha os campos do schema. Retorne somente o JSON.\n"
                     + personal_data_policy
+                    + personal_data_hint
                     + laudo_policy
+                    + conclusao_policy
+                    + relatorio_escolar_policy
                     + "Texto:\n"
                     + chunk_text
                 )
@@ -664,12 +718,6 @@ def main(argv: Optional[List[str]] = None) -> int:
             return 3
 
         is_inss_doc = _is_inss_document(ocr, args.inss_min_total_pages)
-        outorgante_pages = _find_pages_containing(ocr, page_numbers, "outorgante") if is_inss_doc else []
-        # fallback para documentos onde a seção esteja rotulada de outra forma
-        if is_inss_doc and not outorgante_pages:
-            outorgante_pages = _find_pages_containing(ocr, page_numbers, "procuração")
-        if is_inss_doc and not outorgante_pages:
-            outorgante_pages = _find_pages_containing(ocr, page_numbers, "procuracao")
 
         chunks = chunk_page_numbers(page_numbers, args.pages_per_call)
         if not chunks:
@@ -681,6 +729,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             if not chunk_text.strip():
                 continue
 
+            personal_data_hint = ""  # análise em todas as páginas do INSS, sem restrição a seção específica
+
             personal_data_policy = (
                 "POLÍTICA DE DADOS PESSOAIS (OBRIGATÓRIA):\n"
                 "- Os campos de 'qualificacao_parte_autora' (nome, nacionalidade, estado_civil, profissao, cpf, endereco_completo,\n"
@@ -689,12 +739,35 @@ def main(argv: Optional[List[str]] = None) -> int:
             if is_inss_doc:
                 personal_data_policy += (
                     "- ESTE documento é o PDF do INSS.\n"
-                    f"- Extraia 'qualificacao_parte_autora' SOMENTE a partir da(s) página(s) que contém 'OUTORGANTE'. Páginas detectadas: {outorgante_pages or 'nenhuma'}.\n"
-                    "- Se não houver informação suficiente nessas páginas, retorne null (não adivinhe).\n"
-                    "- ATENÇÃO: pode haver nomes/CPFs de terceiros na procuração.\n"
-                    "  - Nunca use 'Horlando Braga Filho' (nem CPF/endereço dele) como dados pessoais do paciente/parte autora.\n"
-                    "  - Não confunda outorgante/outorgado com paciente. Só preencha representante_legal_* se o documento indicar explicitamente\n"
-                    "    que a pessoa é representante legal/responsável do paciente (pai/mãe/responsável legal), e ainda assim sem confundir com o paciente.\n"
+                    f"- Analise o conteúdo de todas as {len(page_numbers)} páginas e extraia 'qualificacao_parte_autora' de qualquer parte relevante do documento.\n"
+                    "- ATENÇÃO: NUNCA use dados da seção 'Procuradores / Representantes Legais' como dados do paciente.\n"
+                    "  - IGNORE 'Horlando Braga Filho' e seu CPF (028.951.113-59) - ele é o advogado/procurador, NÃO o paciente.\n"
+                    "\n"
+                    "REGRAS PARA REPRESENTANTE LEGAL (CRÍTICO):\n"
+                    "- Procure por seções com o título 'PROCURAÇÃO' ou texto contendo 'Outorgante' e 'representado (a) por'.\n"
+                    "- FORMATO TÍPICO DA PROCURAÇÃO:\n"
+                    "  'PROCURAÇÃO\n"
+                    "   Outorgante: [Nome do Paciente], brasileiro, [estado civil], [profissão], CPF: XXX.XXX.XXX-XX e RG: XXXXXXXXX,\n"
+                    "   representado (a) por [Nome do Representante Legal], CPF: XXX.XXX.XXX-XX e RG: XXXXXXXXX'\n"
+                    "\n"
+                    "- REGRA DE EXTRAÇÃO:\n"
+                    "  1. OUTORGANTE = PACIENTE (pessoa que dá a procuração) → Preencha 'nome', 'cpf' da qualificacao_parte_autora\n"
+                    "  2. REPRESENTADO POR = REPRESENTANTE LEGAL (quem representa o paciente) → Preencha:\n"
+                    "     - representante_legal_nome: nome completo que vem APÓS 'representado (a) por' ou 'representado(a) por'\n"
+                    "     - representante_legal_cpf: CPF que vem logo após o nome do representante\n"
+                    "     - representante_legal_rg: RG que vem logo após o CPF do representante\n"
+                    "\n"
+                    "- EXEMPLO REAL:\n"
+                    "  Texto: 'Outorgante: Heliabison Matias Correia, brasileiro, Solteiro(a), Estudante, CPF: 078.428.503-99\n"
+                    "         e RG: 2020096219-6, representado (a) por Daiane Cunha Matias, CPF: 021.409.413-81 e RG: 2004003002105'\n"
+                    "  EXTRAÇÃO CORRETA:\n"
+                    "  - nome: 'Heliabison Matias Correia'\n"
+                    "  - cpf: '078.428.503-99'\n"
+                    "  - representante_legal_nome: 'Daiane Cunha Matias'\n"
+                    "  - representante_legal_cpf: '021.409.413-81'\n"
+                    "  - representante_legal_rg: '2004003002105'\n"
+                    "\n"
+                    "- ATENÇÃO: NÃO confunda o representante legal (familiar/tutor na procuração) com o advogado/procurador (Horlando Braga Filho).\n"
                 )
             else:
                 personal_data_policy += (
@@ -703,9 +776,25 @@ def main(argv: Optional[List[str]] = None) -> int:
                     "  (ou seja: NÃO extraia nome/CPF/endereço do paciente daqui, mesmo que apareça no texto).\n"
                 )
 
+            conclusao_policy = (
+                "POLÍTICA DE CONCLUSÃO MÉDICA (OBRIGATÓRIA):\n"
+                "- Extraia 'diagnostico_final_tratamento' dos laudos (deficiência/CID, medicamento, finalidade).\n"
+                "- 'conclusao_medica': síntese textual da conclusão clínica do médico sobre o paciente "
+                "(diagnóstico final, comprometimento, necessidade de acompanhamento). Preencha se houver nos laudos.\n"
+            )
+            relatorio_escolar_policy = (
+                "POLÍTICA DO RELATÓRIO ESCOLAR (OBRIGATÓRIA):\n"
+                "- Nos campos 'resumo' e 'resumo_continuacao' do relatorio_escolar: extraia SOMENTE o que é importante sobre o aluno "
+                "(dificuldades, necessidades, limitações, recomendações, desempenho).\n"
+                "- NÃO inclua texto introdutório como 'este relatório visa fornecer informações...', 'com foco nas necessidades especiais...' ou similares.\n"
+            )
+
             user_msg = (
                 "Analise o texto a seguir e preencha os campos do schema. Retorne somente o JSON.\n"
                 + personal_data_policy
+                + personal_data_hint
+                + conclusao_policy
+                + relatorio_escolar_policy
                 + "Texto:\n"
                 + chunk_text
             )

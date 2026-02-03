@@ -5,14 +5,20 @@ __pycache__/
 venv
 .venv
 
+
 # Firebase service account keys (NEVER commit!)
 serviceAccountKey.json
 *serviceAccountKey*.json
 firebase-adminsdk-*.json
 
+# Logs de extração INSS
+logs/
+
 # Arquivos temporários
 *.docx
 !template.docx
+!template_final.docx
+!template_final_real.docx
 *.tmp
 .DS_Store
-Thumbs.db
+Thumbs.dbhorlandobraga-168fc-firebase-adminsdk-fbsvc-7c518e8973.json

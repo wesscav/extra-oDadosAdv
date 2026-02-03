@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
 
-# python fill_template.py extraction_structured.json --template template.docx -o template_gerado.docx
+# python fill_template.py extraction_structured.json --template template_final_real.docx -o template_gerado.docx
 
 """Fill a DOCX template using values from extraction_structured.json.
 
 Usage:
-  python fill_template.py extraction_structured.json --template template.docx -o template_gerado.docx
+  python fill_template.py extraction_structured.json --template template_final_real.docx -o template_gerado.docx
 
 Behavior:
 - Reads the structured JSON produced by `analyze_with_openai.py`.
@@ -57,6 +57,81 @@ def first_non_null(data: Dict[str, Any], paths: List[List[str]]) -> Optional[Any
     return None
 
 
+def format_paragraph_capitalization(text: str) -> str:
+    """Primeira letra minúscula; após ponto final, próxima palavra maiúscula."""
+    if not text or not isinstance(text, str):
+        return text
+    text = text.strip()
+    if not text:
+        return text
+    result = text[0].lower() + text[1:] if len(text) > 1 else text[0].lower()
+
+    def _repl(m) -> str:
+        c = m.group(1)
+        return ". " + (c.upper() if c.isalpha() else c)
+
+    result = re.sub(r"\.\s+(.)", _repl, result)
+    return result
+
+
+def wrap_long_text(text: str, max_chars: int = 80) -> str:
+    """Insere quebras de linha para facilitar a quebra em células/parágrafos do Word."""
+    if not text or not isinstance(text, str):
+        return text
+    text = text.strip()
+    if len(text) <= max_chars:
+        return text
+    lines: List[str] = []
+    while text:
+        if len(text) <= max_chars:
+            lines.append(text)
+            break
+        break_at = text.rfind(" ", 0, max_chars + 1)
+        if break_at <= 0:
+            break_at = text.find(" ", max_chars)
+        if break_at <= 0:
+            lines.append(text)
+            break
+        lines.append(text[:break_at])
+        text = text[break_at + 1 :].lstrip()
+    return "\n".join(lines)
+
+
+def format_date_to_dd_mm_yyyy(val: Optional[Any]) -> str:
+    """Converte datas para formato DD/MM/YYYY (ex: 05/12/2024)."""
+    if val is None or val == "":
+        return ""
+    val = str(val).strip()
+    if not val:
+        return ""
+    # ISO YYYY-MM-DD
+    m = re.match(r"(\d{4})-(\d{1,2})-(\d{1,2})", val)
+    if m:
+        y, mo, d = m.group(1), m.group(2).zfill(2), m.group(3).zfill(2)
+        return f"{d}/{mo}/{y}"
+    # DD/MM/YYYY (já ok)
+    if re.match(r"\d{1,2}/\d{1,2}/\d{4}", val):
+        parts = val.split("/")
+        if len(parts) == 3:
+            return f"{parts[0].zfill(2)}/{parts[1].zfill(2)}/{parts[2]}"
+    # DD-MM-YYYY
+    m = re.match(r"(\d{1,2})-(\d{1,2})-(\d{4})", val)
+    if m:
+        d, mo, y = m.group(1).zfill(2), m.group(2).zfill(2), m.group(3)
+        return f"{d}/{mo}/{y}"
+    # "05 de dezembro de 2024"
+    _meses = {"janeiro": 1, "fevereiro": 2, "março": 3, "marco": 3, "abril": 4, "maio": 5,
+              "junho": 6, "julho": 7, "agosto": 8, "setembro": 9, "outubro": 10,
+              "novembro": 11, "dezembro": 12}
+    m = re.match(r"(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})", val, re.IGNORECASE)
+    if m:
+        d, mes_nome, y = m.group(1).zfill(2), m.group(2).lower(), m.group(3)
+        mo = _meses.get(mes_nome)
+        if mo:
+            return f"{d}/{mo:02d}/{y}"
+    return val
+
+
 def prepare_replacements(structured: Dict[str, Any]) -> Dict[str, str]:
     """Map placeholders to values extracted from structured JSON."""
     def s(v: Any) -> str:
@@ -81,33 +156,55 @@ def prepare_replacements(structured: Dict[str, Any]) -> Dict[str, str]:
 
     # requerimento INSS
     replacements["Número do benefício"] = s(first_non_null(structured, [["dados_requerimento_inss", "numero_beneficio_NB"]]))
-    replacements["data de entrada do requerimento"] = s(first_non_null(structured, [["dados_requerimento_inss", "DER_data_entrada_requerimento"]]))
+    replacements["data de entrada do requerimento"] = format_date_to_dd_mm_yyyy(first_non_null(structured, [["dados_requerimento_inss", "DER_data_entrada_requerimento"]]))
 
     # dados medicos
     lp = structured.get("dados_medicos", {})
-    replacements["deficiência constatada em laudo médico"] = s(first_non_null(structured, [["dados_medicos", "laudo_principal", "deficiencia_constatada"]]))
+    def_laudo = s(first_non_null(structured, [["dados_medicos", "laudo_principal", "deficiencia_constatada"]]))
+    replacements["deficiência constatada em laudo médico"] = format_paragraph_capitalization(wrap_long_text(def_laudo)) if def_laudo else ""
     replacements["CID da doença"] = s(first_non_null(structured, [["dados_medicos", "laudo_principal", "CID_da_doenca"]]))
-    replacements["data do laudo médico"] = s(first_non_null(structured, [["dados_medicos", "laudo_principal", "data_do_laudo"]]))
+    replacements["data do laudo médico"] = format_date_to_dd_mm_yyyy(first_non_null(structured, [["dados_medicos", "laudo_principal", "data_do_laudo"]]))
     replacements["especialidade do médico"] = s(first_non_null(structured, [["dados_medicos", "laudo_principal", "especialidade_do_medico"]]))
     replacements["nome do médico"] = s(first_non_null(structured, [["dados_medicos", "laudo_principal", "nome_do_medico"]]))
-    replacements["descrição do laudo"] = s(first_non_null(structured, [["dados_medicos", "laudo_principal", "trecho_clinico_relevante"]]))
+    desc_laudo = s(first_non_null(structured, [["dados_medicos", "laudo_principal", "trecho_clinico_relevante"]]))
+    if desc_laudo:
+        d = desc_laudo.strip()
+        if d.lower().startswith("recomenda"):
+            raw = "recomenda" + d[9:] if len(d) > 9 else "recomenda"
+        else:
+            raw = "recomenda " + d
+        replacements["descrição do laudo"] = format_paragraph_capitalization(raw)
+    else:
+        replacements["descrição do laudo"] = ""
 
     # relatorio escolar
-    replacements["data de emissão do relatório escolar"] = s(first_non_null(structured, [["dados_medicos", "relatorio_escolar", "data_emissao"]]))
+    replacements["data de emissão do relatório escolar"] = format_date_to_dd_mm_yyyy(first_non_null(structured, [["dados_medicos", "relatorio_escolar", "data_emissao"]]))
     replacements["primeiro nome do autor"] = s(first_non_null(structured, [["dados_medicos", "relatorio_escolar", "primeiro_nome_do_autor"]]))
-    replacements["resumo do relatório escolar"] = s(first_non_null(structured, [["dados_medicos", "relatorio_escolar", "resumo"]]))
-    replacements["continuação do resumo do relatório escolar"] = s(first_non_null(structured, [["dados_medicos", "relatorio_escolar", "resumo_continuacao"]]))
+    resumo_esc = s(first_non_null(structured, [["dados_medicos", "relatorio_escolar", "resumo"]]))
+    replacements["resumo do relatório escolar"] = format_paragraph_capitalization(resumo_esc) if resumo_esc else ""
+    resumo_cont = s(first_non_null(structured, [["dados_medicos", "relatorio_escolar", "resumo_continuacao"]]))
+    replacements["continuação do resumo do relatório escolar"] = format_paragraph_capitalization(resumo_cont) if resumo_cont else ""
+    replacements["continua o resumo do relatório escolar"] = replacements["continuação do resumo do relatório escolar"]
 
     # segundo laudo
-    replacements["data do “segundo laudo”"] = s(first_non_null(structured, [["dados_medicos", "laudo_psiquiatrico_segundo_laudo", "data_segundo_laudo"]]))
+    replacements["data do “segundo laudo”"] = format_date_to_dd_mm_yyyy(first_non_null(structured, [["dados_medicos", "laudo_psiquiatrico_segundo_laudo", "data_segundo_laudo"]]))
     replacements["Nome do médico segundo"] = s(first_non_null(structured, [["dados_medicos", "laudo_psiquiatrico_segundo_laudo", "nome_medico"]]))
-    replacements["resumo do laudo médico"] = s(first_non_null(structured, [["dados_medicos", "laudo_psiquiatrico_segundo_laudo", "resumo"]]))
+    replacements["Nome do médico"] = replacements["Nome do médico segundo"]  # alias (laudo psiquiátrico)
+    resumo_laudo = s(first_non_null(structured, [["dados_medicos", "laudo_psiquiatrico_segundo_laudo", "resumo"]]))
+    replacements["resumo do laudo médico"] = format_paragraph_capitalization(resumo_laudo) if resumo_laudo else ""
+
 
     # diagnostico e tratamento
-    replacements["deficiência e a CID correspondente"] = s(first_non_null(structured, [["dados_medicos", "diagnostico_final_tratamento", "deficiencia_e_CID"]]))
-    replacements["deficiência associada e CID correspondente"] = s(first_non_null(structured, [["dados_medicos", "diagnostico_final_tratamento", "deficiencia_associada_e_CID"]]))
+    conclusao = s(first_non_null(structured, [["dados_medicos", "diagnostico_final_tratamento", "conclusao_medica"]]))
+    replacements["conclusão médica"] = format_paragraph_capitalization(conclusao) if conclusao else ""
+    def_cid = s(first_non_null(structured, [["dados_medicos", "diagnostico_final_tratamento", "deficiencia_e_CID"]]))
+    replacements["deficiência e a CID correspondente"] = format_paragraph_capitalization(wrap_long_text(def_cid)) if def_cid else ""
+    def_assoc = s(first_non_null(structured, [["dados_medicos", "diagnostico_final_tratamento", "deficiencia_associada_e_CID"]]))
+    replacements["deficiência associada e CID correspondente"] = format_paragraph_capitalization(wrap_long_text(def_assoc)) if def_assoc else ""
     replacements["medicamento prescrito"] = s(first_non_null(structured, [["dados_medicos", "diagnostico_final_tratamento", "medicamento_prescrito"]]))
-    replacements["descrição da finalidade do medicamento"] = s(first_non_null(structured, [["dados_medicos", "diagnostico_final_tratamento", "finalidade_medicamento"]]))
+    finalidade = s(first_non_null(structured, [["dados_medicos", "diagnostico_final_tratamento", "finalidade_medicamento"]]))
+    replacements["descrição da finalidade do medicamento"] = format_paragraph_capitalization(finalidade) if finalidade else ""
+    replacements["descrição para que serve o medicamento"] = replacements["descrição da finalidade do medicamento"]  # alias
 
     # dados socioeconomicos
     replacements["detalhar o grau de parentesco das pessoas listadas no cadastro único"] = s(first_non_null(structured, [["dados_socioeconomicos", "grau_parentesco_CadUnico"]]))
@@ -157,7 +254,7 @@ def process_document(doc: Any, replacements: Dict[str, str]) -> None:
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="Fill DOCX template with fields from structured JSON")
     parser.add_argument("input_json", help="Structured JSON file (from analyze_with_openai.py)")
-    parser.add_argument("--template", default="template.docx", help="Path to DOCX template")
+    parser.add_argument("--template", default="template_final_real.docx", help="Path to DOCX template")
     parser.add_argument("-o", "--output", default="template_gerado.docx", help="Output filled DOCX")
     args = parser.parse_args(argv)
 

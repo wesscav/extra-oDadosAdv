@@ -30,13 +30,14 @@ const els = {
   cancelBtn: document.getElementById("cancelBtn"),
   confirmBtn: document.getElementById("confirmBtn"),
 
-  perDocInfo: document.getElementById("perDocInfo"),
   summary: document.getElementById("summary"),
 };
 
 let currentUser = null;
 let currentToken = null;
 let structuredDraft = null;
+let cachedIdToken = null;
+let tokenExpiryTime = 0;
 
 const ALWAYS_NACIONALIDADE = "brasileiro(a)";
 
@@ -57,6 +58,140 @@ function valueForInput(v) {
 
 function deepClone(obj) {
   return JSON.parse(JSON.stringify(obj || {}));
+}
+
+function capitalizeName(name) {
+  if (!name || typeof name !== "string") return name;
+  
+  // Lista de preposições e artigos que devem ficar em minúscula (exceto se forem a primeira palavra)
+  const lowercaseWords = new Set(['da', 'de', 'do', 'das', 'dos', 'e', 'em', 'na', 'no', 'a', 'o']);
+  
+  const words = name.trim().split(/\s+/);
+  const result = words.map((word, i) => {
+    // Primeira palavra sempre capitalizada
+    if (i === 0) {
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    }
+    // Preposições e artigos em minúscula
+    if (lowercaseWords.has(word.toLowerCase())) {
+      return word.toLowerCase();
+    }
+    // Outras palavras capitalizadas
+    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+  });
+  
+  return result.join(' ');
+}
+
+function formatCPF(cpf) {
+  if (!cpf || typeof cpf !== "string") return cpf;
+  
+  // Remove tudo que não é dígito
+  const digits = cpf.replace(/\D/g, '');
+  
+  // Se não tem 11 dígitos, retorna original
+  if (digits.length !== 11) return cpf;
+  
+  // Formata XXX.XXX.XXX-XX
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+}
+
+function formatCID(cid) {
+  if (!cid || typeof cid !== "string") return cid;
+  
+  cid = cid.trim().toUpperCase();
+  
+  // Se já começa com CID, normaliza
+  if (cid.startsWith('CID')) {
+    cid = cid.replace(/CID\s*-?\s*/i, 'CID-');
+    return cid;
+  }
+  
+  // Se é só o código (ex: F84.0), adiciona CID-
+  if (cid.length >= 3 && /^[A-Z]/.test(cid)) {
+    return `CID-${cid}`;
+  }
+  
+  return cid;
+}
+
+function capitalizeMedicalTerm(term) {
+  if (!term || typeof term !== "string") return term;
+  
+  const lowercaseWords = new Set(['de', 'da', 'do', 'das', 'dos', 'e', 'em', 'na', 'no', 'a', 'o', 'com', 'por']);
+  const uppercaseTerms = new Set(['tea', 'tdah', 'toc', 'tpt', 'tag']);
+  
+  const words = term.trim().split(/\s+/);
+  const result = words.map((word, i) => {
+    const wordLower = word.toLowerCase();
+    
+    // Primeira palavra
+    if (i === 0) {
+      if (uppercaseTerms.has(wordLower)) {
+        return word.toUpperCase();
+      }
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    }
+    // Siglas em maiúscula
+    if (uppercaseTerms.has(wordLower)) {
+      return word.toUpperCase();
+    }
+    // Preposições em minúscula
+    if (lowercaseWords.has(wordLower)) {
+      return wordLower;
+    }
+    // Outras palavras capitalizadas
+    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+  });
+  
+  return result.join(' ');
+}
+
+function getFieldType(path) {
+  if (!path || path.length === 0) return 'lowercase';
+  
+  const last = path[path.length - 1];
+  
+  const nameFields = new Set([
+    'nome',
+    'representante_legal_nome',
+    'nome_do_medico',
+    'nome_medico',
+    'primeiro_nome_do_autor',
+    'nome_avo',
+  ]);
+  
+  const addressFields = new Set(['endereco_completo']);
+  
+  const cpfFields = new Set([
+    'cpf',
+    'representante_legal_cpf',
+  ]);
+  
+  const cidFields = new Set([
+    'CID_da_doenca',
+    'cid',
+  ]);
+  
+  const medicalFields = new Set([
+    'especialidade_do_medico',
+    'deficiencia_constatada',
+    'deficiencia_e_CID',
+    'deficiencia_associada_e_CID',
+    'medicamento_prescrito',
+  ]);
+  
+  if (nameFields.has(last) || addressFields.has(last)) {
+    return 'name';
+  } else if (cpfFields.has(last)) {
+    return 'cpf';
+  } else if (cidFields.has(last)) {
+    return 'cid';
+  } else if (medicalFields.has(last)) {
+    return 'medical';
+  }
+  
+  return 'lowercase';
 }
 
 function setDeep(structured, path, value) {
@@ -80,7 +215,32 @@ function setDeep(structured, path, value) {
   }
   const last = path[path.length - 1];
   const trimmed = (value ?? "").toString().trim();
-  const normalized = trimmed === "" ? null : trimmed.toLowerCase();
+  
+  // Aplica formatação apropriada baseada no tipo de campo
+  let normalized;
+  if (trimmed === "") {
+    normalized = null;
+  } else {
+    const fieldType = getFieldType(path);
+    
+    switch (fieldType) {
+      case 'name':
+        normalized = capitalizeName(trimmed);
+        break;
+      case 'cpf':
+        normalized = formatCPF(trimmed);
+        break;
+      case 'cid':
+        normalized = formatCID(trimmed);
+        break;
+      case 'medical':
+        normalized = capitalizeMedicalTerm(trimmed);
+        break;
+      default:
+        normalized = trimmed.toLowerCase();
+    }
+  }
+  
   cur[last] = normalized;
 }
 
@@ -110,20 +270,35 @@ function autosizeTextarea(el) {
   el.style.height = `${el.scrollHeight}px`;
 }
 
-async function authHeaders(extraHeaders = {}) {
-  if (!currentUser) throw new Error("Você precisa estar logado.");
-  const idToken = await currentUser.getIdToken();
-  return { ...extraHeaders, Authorization: `Bearer ${idToken}` };
-}
-
-function renderPerDocInfo(perDocument = []) {
-  els.perDocInfo.innerHTML = "";
-  for (const d of perDocument) {
-    const pages = Array.isArray(d.pages_analyzed) ? d.pages_analyzed.length : 0;
-    const pill = document.createElement("div");
-    pill.className = "pill";
-    pill.textContent = `${d.source || "documento"} • páginas analisadas: ${pages}`;
-    els.perDocInfo.appendChild(pill);
+async function authHeaders(extraHeaders = {}, forceRefresh = false) {
+  if (!currentUser) {
+    console.error("currentUser is null");
+    throw new Error("Você precisa estar logado.");
+  }
+  
+  try {
+    const now = Date.now();
+    
+    // Usa token em cache se ainda válido (válido por ~55 minutos)
+    if (!forceRefresh && cachedIdToken && tokenExpiryTime > now) {
+      return { ...extraHeaders, Authorization: `Bearer ${cachedIdToken}` };
+    }
+    
+    // Renova o token apenas se forceRefresh=true ou se expirou/não existe
+    const idToken = await currentUser.getIdToken(forceRefresh);
+    console.log("Token obtido/renovado, tamanho:", idToken?.length);
+    
+    // Armazena em cache (expira em 55 minutos)
+    cachedIdToken = idToken;
+    tokenExpiryTime = now + (55 * 60 * 1000);
+    
+    return { ...extraHeaders, Authorization: `Bearer ${idToken}` };
+  } catch (error) {
+    console.error("Erro ao obter token:", error);
+    // Limpa cache em caso de erro
+    cachedIdToken = null;
+    tokenExpiryTime = 0;
+    throw new Error("Falha ao obter token de autenticação. Faça login novamente.");
   }
 }
 
@@ -200,6 +375,7 @@ function renderSummaryFromStructured(structured) {
     [
       "Conclusão Médica e Medicamentos",
       [
+        ["Conclusão médica", ["dados_medicos", "diagnostico_final_tratamento", "conclusao_medica"]],
         ["Deficiência e CID (principal)", ["dados_medicos", "diagnostico_final_tratamento", "deficiencia_e_CID"]],
         ["Deficiência e CID (secundária/associada)", ["dados_medicos", "diagnostico_final_tratamento", "deficiencia_associada_e_CID"]],
         ["Medicamento prescrito", ["dados_medicos", "diagnostico_final_tratamento", "medicamento_prescrito"]],
@@ -215,7 +391,8 @@ function renderSummaryFromStructured(structured) {
       last.includes("trecho_") ||
       last.includes("finalidade_") ||
       last.includes("endereco") ||
-      last.includes("observacao")
+      last.includes("observacao") ||
+      last.includes("conclusao_medica")
     );
   }
 
@@ -249,7 +426,11 @@ function renderSummaryFromStructured(structured) {
       const v = wantsTextarea(path) ? document.createElement("textarea") : document.createElement("input");
       if (v.tagName.toLowerCase() === "input") v.type = "text";
       v.className = "field-input";
-      v.value = valueForInput(currentVal).toLowerCase();
+      
+      // Não força lowercase no display - mantém capitalização original
+      const displayValue = valueForInput(currentVal);
+      v.value = displayValue;
+      
       if (isNacionalidade) {
         v.readOnly = true;
         v.title = 'Valor fixo: "brasileiro(a)"';
@@ -293,15 +474,20 @@ function setFilesFromList(fileList) {
   const incoming = Array.from(fileList || []).filter((f) => f && typeof f.name === "string");
   if (!incoming.length) return;
 
-  const onlyPdfs = incoming.filter((f) => f.name.toLowerCase().endsWith(".pdf"));
-  if (onlyPdfs.length !== incoming.length) {
-    setStatus("Alguns arquivos foram ignorados (apenas PDF é aceito).", "error");
+  const allowedExtensions = ['.pdf', '.png', '.jpg', '.jpeg'];
+  const validFiles = incoming.filter((f) => {
+    const name = f.name.toLowerCase();
+    return allowedExtensions.some(ext => name.endsWith(ext));
+  });
+  
+  if (validFiles.length !== incoming.length) {
+    setStatus("Alguns arquivos foram ignorados (apenas PDF, PNG ou JPG aceitos).", "error");
   } else {
     setStatus("");
   }
 
-  // Limita ao que o usuário escolheu/soltou; validação final (4 PDFs) continua no submit.
-  const selected = onlyPdfs;
+  // Limita ao que o usuário escolheu/soltou; validação final (mín. 1 arquivo) continua no submit.
+  const selected = validFiles;
   try {
     const dt = new DataTransfer();
     for (const f of selected) dt.items.add(f);
@@ -344,6 +530,10 @@ els.cancelBtn.addEventListener("click", closeModal);
 
 els.logoutBtn.addEventListener("click", async () => {
   try {
+    // Limpa cache do token
+    cachedIdToken = null;
+    tokenExpiryTime = 0;
+    
     await signOut(auth);
     window.location.href = "/login";
   } catch (err) {
@@ -351,14 +541,134 @@ els.logoutBtn.addEventListener("click", async () => {
   }
 });
 
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
+  const previousUser = currentUser;
   currentUser = user || null;
+  
+  // Limpa cache se o usuário mudou
+  if (!currentUser || (previousUser && previousUser.uid !== currentUser?.uid)) {
+    cachedIdToken = null;
+    tokenExpiryTime = 0;
+  }
   
   // If not logged in, redirect to login page
   if (!currentUser) {
+    console.log("Nenhum usuário autenticado, redirecionando para login");
     window.location.href = "/login";
+    return;
+  }
+  
+  try {
+    // Verifica se o token é válido e força primeira renovação
+    const idToken = await currentUser.getIdToken(false);
+    cachedIdToken = idToken;
+    tokenExpiryTime = Date.now() + (55 * 60 * 1000);
+    console.log("Usuário autenticado:", currentUser.email);
+  } catch (error) {
+    console.error("Erro ao verificar token:", error);
+    cachedIdToken = null;
+    tokenExpiryTime = 0;
+    setStatus("Sessão inválida. Redirecionando para login...", "error");
+    await signOut(auth);
+    setTimeout(() => {
+      window.location.href = "/login";
+    }, 1500);
   }
 });
+
+async function pollTaskStatus(taskId) {
+  const maxAttempts = 300; // 5 minutos (300 * 1 segundo)
+  let attempts = 0;
+
+  while (attempts < maxAttempts) {
+    try {
+      // NÃO força renovação do token em cada polling - usa cache
+      const headersObj = await authHeaders({}, false);
+      const headers = new Headers();
+      for (const [key, value] of Object.entries(headersObj)) {
+        headers.append(key, value);
+      }
+
+      const resp = await fetch(`/api/task/${taskId}`, {
+        method: "GET",
+        headers: headers,
+      });
+
+      if (resp.status === 401) {
+        // Se receber 401, tenta uma vez com token renovado
+        if (attempts > 0) {
+          try {
+            console.log("Token expirado durante polling, renovando...");
+            const refreshedHeaders = await authHeaders({}, true);
+            const newHeaders = new Headers();
+            for (const [key, value] of Object.entries(refreshedHeaders)) {
+              newHeaders.append(key, value);
+            }
+            
+            const retryResp = await fetch(`/api/task/${taskId}`, {
+              method: "GET",
+              headers: newHeaders,
+            });
+            
+            if (retryResp.ok) {
+              const task = await retryResp.json();
+              
+              if (task.message) {
+                setStatus(`${task.message} (${task.progress}%)`);
+              }
+
+              if (task.status === "completed") {
+                return task.result;
+              } else if (task.status === "failed") {
+                throw new Error(task.error || "Falha ao processar documentos.");
+              }
+
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+              attempts++;
+              continue;
+            }
+          } catch (retryErr) {
+            console.error("Erro ao renovar token:", retryErr);
+          }
+        }
+        
+        setStatus("Sessão expirada. Redirecionando para login...", "error");
+        await signOut(auth);
+        setTimeout(() => {
+          window.location.href = "/login";
+        }, 1500);
+        return null;
+      }
+
+      if (!resp.ok) {
+        const data = await resp.json().catch(() => ({}));
+        throw new Error(data?.detail || "Falha ao verificar status da tarefa.");
+      }
+
+      const task = await resp.json();
+      
+      // Atualiza status na tela
+      if (task.message) {
+        setStatus(`${task.message} (${task.progress}%)`);
+      }
+
+      if (task.status === "completed") {
+        return task.result;
+      } else if (task.status === "failed") {
+        throw new Error(task.error || "Falha ao processar documentos.");
+      }
+
+      // Aguarda 1 segundo antes de verificar novamente
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      attempts++;
+    } catch (err) {
+      console.error("Erro ao verificar status:", err);
+      throw err;
+    }
+  }
+
+  throw new Error("Timeout: o processamento está demorando mais que o esperado. Tente novamente mais tarde.");
+}
 
 els.form.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -371,33 +681,63 @@ els.form.addEventListener("submit", async (e) => {
   }
 
   const files = els.files.files ? Array.from(els.files.files) : [];
-  if (files.length !== 4) {
-    setStatus("Selecione exatamente 4 PDFs.", "error");
+  if (files.length < 1) {
+    setStatus("Selecione pelo menos 1 arquivo (PDF, PNG ou JPG).", "error");
     return;
   }
-  if (files.some((f) => !f.name.toLowerCase().endsWith(".pdf"))) {
-    setStatus("Todos os arquivos precisam ser PDF.", "error");
+  
+  const allowedExtensions = ['.pdf', '.png', '.jpg', '.jpeg'];
+  if (files.some((f) => !allowedExtensions.some(ext => f.name.toLowerCase().endsWith(ext)))) {
+    setStatus("Todos os arquivos precisam ser PDF, PNG ou JPG.", "error");
     return;
   }
 
   els.submitBtn.disabled = true;
-  setStatus("Extraindo e analisando... isso pode levar alguns minutos, dependendo do tamanho dos PDFs.");
+  setStatus("Iniciando processamento...");
 
   try {
     const fd = new FormData();
     for (const f of files) fd.append("files", f, f.name);
 
+    const headersObj = await authHeaders();
+    const headers = new Headers();
+    for (const [key, value] of Object.entries(headersObj)) {
+      headers.append(key, value);
+    }
+
+    // Envia os arquivos e recebe o task_id
     const resp = await fetch("/api/extract", {
       method: "POST",
       body: fd,
-      headers: await authHeaders(),
+      headers: headers,
     });
+    
+    if (resp.status === 401) {
+      setStatus("Sessão expirada. Redirecionando para login...", "error");
+      await signOut(auth);
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 1500);
+      return;
+    }
+    
     const data = await resp.json().catch(() => ({}));
     if (!resp.ok) throw new Error(data?.detail || "Falha na extração.");
 
-    currentToken = data.token;
-    structuredDraft = ensureDefaults(deepClone(data.structured || {}));
-    renderPerDocInfo(data.per_document || []);
+    const taskId = data.task_id;
+    if (!taskId) throw new Error("Task ID não recebido do servidor.");
+
+    setStatus("Processando... isso pode levar alguns minutos.");
+
+    // Faz polling do status da tarefa
+    const result = await pollTaskStatus(taskId);
+    
+    if (!result) {
+      throw new Error("Resultado não recebido.");
+    }
+
+    currentToken = result.token;
+    structuredDraft = ensureDefaults(deepClone(result.structured || {}));
     renderSummaryFromStructured(structuredDraft);
 
     setStatus("Resumo pronto. Confirme no modal para gerar o DOCX.", "ok");
@@ -427,11 +767,29 @@ els.confirmBtn.addEventListener("click", async () => {
   setStatus("Gerando DOCX...");
 
   try {
+    const headersObj = await authHeaders({ "Content-Type": "application/json" });
+    const headers = new Headers();
+    for (const [key, value] of Object.entries(headersObj)) {
+      headers.append(key, value);
+    }
+
     const resp = await fetch("/api/generate-docx", {
       method: "POST",
-      headers: await authHeaders({ "Content-Type": "application/json" }),
+      headers: headers,
       body: JSON.stringify({ token: currentToken, structured: structuredDraft }),
     });
+    
+    // Verifica se é erro de autenticação
+    if (resp.status === 401) {
+      setStatus("Sessão expirada. Redirecionando para login...", "error");
+      closeModal();
+      await signOut(auth);
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 1500);
+      return;
+    }
+    
     if (!resp.ok) {
       const data = await resp.json().catch(() => ({}));
       throw new Error(data?.detail || "Falha ao gerar DOCX.");
