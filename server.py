@@ -124,28 +124,52 @@ def require_supabase_user(authorization: Optional[str] = Header(default=None)) -
     
     Valida o token JWT do Supabase e retorna os dados do usuário.
     """
+    print(f"[AUTH] ========== VALIDAÇÃO DE TOKEN ==========")
+    print(f"[AUTH] Authorization header recebido: {authorization[:50] if authorization else 'None'}...")
+    
     if not authorization or not isinstance(authorization, str):
-        print("[AUTH] Cabeçalho Authorization ausente ou inválido")
+        print("[AUTH] ❌ Cabeçalho Authorization ausente ou inválido")
         raise HTTPException(status_code=401, detail="Não autenticado. Envie Authorization: Bearer <access_token>.")
     
     if not authorization.lower().startswith("bearer "):
-        print(f"[AUTH] Cabeçalho Authorization não começa com 'Bearer ': {authorization[:20]}...")
+        print(f"[AUTH] ❌ Cabeçalho Authorization não começa com 'Bearer ': {authorization[:20]}...")
         raise HTTPException(status_code=401, detail="Cabeçalho Authorization inválido. Use Bearer <access_token>.")
 
     token = authorization.split(" ", 1)[1].strip()
     if not token:
-        print("[AUTH] Token vazio após split")
+        print("[AUTH] ❌ Token vazio após split")
         raise HTTPException(status_code=401, detail="Token ausente. Use Authorization: Bearer <access_token>.")
+    
+    print(f"[AUTH] Token extraído (primeiros 50 chars): {token[:50]}...")
+    print(f"[AUTH] Token length: {len(token)}")
 
     try:
+        # Verifica se as variáveis de ambiente estão configuradas
+        supabase_url = os.environ.get("SUPABASE_URL")
+        supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+        
+        print(f"[AUTH] SUPABASE_URL configurado: {bool(supabase_url)}")
+        print(f"[AUTH] SUPABASE_SERVICE_ROLE_KEY configurado: {bool(supabase_key)}")
+        
+        if not supabase_url or not supabase_key:
+            print("[AUTH] ❌ Variáveis de ambiente do Supabase não configuradas!")
+            raise HTTPException(
+                status_code=500, 
+                detail="Servidor não configurado corretamente. Contate o administrador."
+            )
+        
         # Inicializa cliente Supabase
+        print("[AUTH] Inicializando cliente Supabase...")
         supabase = _init_supabase_client()
+        print("[AUTH] Cliente Supabase inicializado com sucesso")
         
         # Valida o token com Supabase
+        print("[AUTH] Validando token com Supabase...")
         response = supabase.auth.get_user(token)
+        print(f"[AUTH] Resposta do Supabase: {response}")
         
         if not response or not response.user:
-            print("[AUTH] Token inválido ou usuário não encontrado")
+            print("[AUTH] ❌ Token inválido ou usuário não encontrado")
             raise HTTPException(status_code=401, detail="Token inválido ou expirado.")
         
         user = response.user
@@ -163,6 +187,7 @@ def require_supabase_user(authorization: Optional[str] = Header(default=None)) -
             user_data["metadata"] = user.user_metadata
         
         print(f"[AUTH] ✅ Token válido para usuário: {user.email} (ID: {user.id})")
+        print(f"[AUTH] ==========================================")
         return user_data
         
     except HTTPException:
@@ -170,7 +195,11 @@ def require_supabase_user(authorization: Optional[str] = Header(default=None)) -
         raise
     except Exception as e:
         # Log do erro real (para debug do servidor, não para o cliente)
-        print(f"[AUTH] Erro ao validar token: {type(e).__name__}: {str(e)}")
+        print(f"[AUTH] ❌ Erro ao validar token: {type(e).__name__}: {str(e)}")
+        print(f"[AUTH] Stack trace completo:")
+        import traceback
+        traceback.print_exc()
+        print(f"[AUTH] ==========================================")
         
         # Tratamento de erros específicos
         if isinstance(e, PyJWTError):
@@ -961,7 +990,11 @@ def api_supabase_config() -> Dict[str, str]:
     supabase_url = os.environ.get("SUPABASE_URL")
     supabase_anon_key = os.environ.get("SUPABASE_ANON_KEY")
     
+    print(f"[SUPABASE CONFIG] URL configurado: {bool(supabase_url)}")
+    print(f"[SUPABASE CONFIG] ANON_KEY configurado: {bool(supabase_anon_key)}")
+    
     if not supabase_url or not supabase_anon_key:
+        print("[SUPABASE CONFIG] ❌ Variáveis de ambiente não configuradas!")
         raise HTTPException(
             status_code=500, 
             detail="Configurações do Supabase não encontradas no servidor."
@@ -970,6 +1003,20 @@ def api_supabase_config() -> Dict[str, str]:
     return {
         "url": supabase_url,
         "anonKey": supabase_anon_key,
+    }
+
+
+@app.get("/api/health")
+def api_health() -> Dict[str, Any]:
+    """Endpoint de diagnóstico para verificar configuração."""
+    return {
+        "status": "ok",
+        "environment": {
+            "SUPABASE_URL": bool(os.environ.get("SUPABASE_URL")),
+            "SUPABASE_ANON_KEY": bool(os.environ.get("SUPABASE_ANON_KEY")),
+            "SUPABASE_SERVICE_ROLE_KEY": bool(os.environ.get("SUPABASE_SERVICE_ROLE_KEY")),
+            "OPENAI_API_KEY": bool(os.environ.get("OPENAI_API_KEY")),
+        }
     }
 
 
