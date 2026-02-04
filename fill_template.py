@@ -132,6 +132,101 @@ def format_date_to_dd_mm_yyyy(val: Optional[Any]) -> str:
     return val
 
 
+def _format_cid(cid: str) -> str:
+    """Formata CID para o formato CID-F.84.0; F.70.0; F.90.0."""
+    if not cid or not isinstance(cid, str):
+        return cid
+    
+    cid = cid.strip().upper()
+    
+    # Remove o prefixo CID se houver múltiplos
+    cid = cid.replace('CID-', '').replace('CID', '')
+    
+    # Separa por vírgula, ponto e vírgula ou barra
+    import re
+    codes = re.split(r'[;,/]', cid)
+    
+    formatted_codes = []
+    for code in codes:
+        code = code.strip()
+        if not code:
+            continue
+        
+        # Garante formato X.XX.X (letra.número.ponto.número)
+        # Remove espaços e normaliza
+        code = code.replace(' ', '')
+        
+        # Já está no formato correto? (ex: F.84.0)
+        if re.match(r'^[A-Z]\.\d+\.\d+$', code):
+            formatted_codes.append(code)
+        # Formato sem pontos? (ex: F840)
+        elif re.match(r'^[A-Z]\d+$', code):
+            letter = code[0]
+            numbers = code[1:]
+            if len(numbers) >= 2:
+                formatted_codes.append(f"{letter}.{numbers[:2]}.{numbers[2:] if len(numbers) > 2 else '0'}")
+        # Formato parcial? (ex: F84)
+        elif re.match(r'^[A-Z]\d{2,3}$', code):
+            letter = code[0]
+            numbers = code[1:]
+            if len(numbers) == 2:
+                formatted_codes.append(f"{letter}.{numbers}.0")
+            else:
+                formatted_codes.append(f"{letter}.{numbers[:2]}.{numbers[2:]}")
+        # Já tem um ponto? (ex: F84.0)
+        elif '.' in code and re.match(r'^[A-Z][\d\.]+$', code):
+            parts = code.split('.')
+            if len(parts) >= 2:
+                formatted_codes.append(f"{parts[0]}.{parts[1]}.{parts[2] if len(parts) > 2 else '0'}")
+        else:
+            # Mantém original se não conseguir formatar
+            formatted_codes.append(code)
+    
+    if formatted_codes:
+        return f"CID-{'; '.join(formatted_codes)}"
+    
+    return cid
+
+
+def _capitalize_medical_term(term: str) -> str:
+    """Capitaliza termos médicos/especialidades (primeira letra de cada palavra importante)."""
+    if not term or not isinstance(term, str):
+        return term
+    
+    # Lista de palavras que devem ficar em minúscula
+    lowercase_words = {'de', 'da', 'do', 'das', 'dos', 'e', 'em', 'na', 'no', 'a', 'o', 'com', 'por'}
+    
+    # Exceções: siglas médicas que devem ficar TODAS em maiúsculas
+    uppercase_terms = {'tea', 'tdah', 'tod', 'toc', 'tpt', 'tag', 'dpac', 'tda'}
+    
+    words = term.strip().split()
+    result = []
+    
+    for i, word in enumerate(words):
+        word_lower = word.lower()
+        
+        # Remove pontuação para comparação
+        word_clean = word_lower.strip('.,;:!?')
+        
+        # Primeira palavra sempre capitalizada (ou maiúscula se for sigla)
+        if i == 0:
+            if word_clean in uppercase_terms:
+                result.append(word.upper())
+            else:
+                result.append(word.capitalize())
+        # Siglas em maiúscula
+        elif word_clean in uppercase_terms:
+            result.append(word.upper())
+        # Preposições em minúscula
+        elif word_lower in lowercase_words:
+            result.append(word_lower)
+        # Outras palavras capitalizadas
+        else:
+            result.append(word.capitalize())
+    
+    return ' '.join(result)
+
+
 def prepare_replacements(structured: Dict[str, Any]) -> Dict[str, str]:
     """Map placeholders to values extracted from structured JSON."""
     def s(v: Any) -> str:
@@ -198,12 +293,39 @@ def prepare_replacements(structured: Dict[str, Any]) -> Dict[str, str]:
     # diagnostico e tratamento
     conclusao = s(first_non_null(structured, [["dados_medicos", "diagnostico_final_tratamento", "conclusao_medica"]]))
     replacements["conclusão médica"] = format_paragraph_capitalization(conclusao) if conclusao else ""
-    def_cid = s(first_non_null(structured, [["dados_medicos", "diagnostico_final_tratamento", "deficiencia_e_CID"]]))
-    replacements["deficiência e a CID correspondente"] = format_paragraph_capitalization(wrap_long_text(def_cid)) if def_cid else ""
+    
+    # Novos campos separados: deficiencia e CID
+    deficiencia = s(first_non_null(structured, [["dados_medicos", "diagnostico_final_tratamento", "deficiencia"]]))
+    cid = s(first_non_null(structured, [["dados_medicos", "diagnostico_final_tratamento", "cid"]]))
+    
+    # Se não encontrar os campos separados, tenta usar os antigos combinados (retrocompatibilidade)
+    if not deficiencia and not cid:
+        def_cid = s(first_non_null(structured, [["dados_medicos", "diagnostico_final_tratamento", "deficiencia_e_CID"]]))
+        if def_cid:
+            # Tenta separar heuristicamente se for o caso antigo
+            # Mas geralmente a IA agora preencherá os novos campos
+            deficiencia = def_cid
+
+    # Formatação especial para CID (tudo maiúsculo)
+    cid = _format_cid(cid) if cid else ""
+    
+    # Formatação especial para Deficiência (termos médicos capitalizados, siglas mantidas)
+    deficiencia = _capitalize_medical_term(deficiencia) if deficiencia else ""
+
+    replacements["deficiência constatada em laudo médico"] = deficiencia
+    replacements["CID da doença"] = cid
+    
+    # Mantém compatibilidade com placeholder antigo se ele ainda existir no template
+    if deficiencia and cid:
+        replacements["deficiência e a CID correspondente"] = f"{deficiencia}, CID {cid}"
+    else:
+        replacements["deficiência e a CID correspondente"] = deficiencia or cid or ""
+
     def_assoc = s(first_non_null(structured, [["dados_medicos", "diagnostico_final_tratamento", "deficiencia_associada_e_CID"]]))
     replacements["deficiência associada e CID correspondente"] = format_paragraph_capitalization(wrap_long_text(def_assoc)) if def_assoc else ""
     replacements["medicamento prescrito"] = s(first_non_null(structured, [["dados_medicos", "diagnostico_final_tratamento", "medicamento_prescrito"]]))
     finalidade = s(first_non_null(structured, [["dados_medicos", "diagnostico_final_tratamento", "finalidade_medicamento"]]))
+
     replacements["descrição da finalidade do medicamento"] = format_paragraph_capitalization(finalidade) if finalidade else ""
     replacements["descrição para que serve o medicamento"] = replacements["descrição da finalidade do medicamento"]  # alias
 

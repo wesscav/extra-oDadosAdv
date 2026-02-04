@@ -115,6 +115,8 @@ FUNCTION_SCHEMA = {
                         "properties": {
                             "conclusao_medica": {"type": ["string", "null"]},
                             "deficiencia_e_CID": {"type": ["string", "null"]},
+                            "deficiencia": {"type": ["string", "null"]},
+                            "cid": {"type": ["string", "null"]},
                             "deficiencia_associada_e_CID": {"type": ["string", "null"]},
                             "medicamento_prescrito": {"type": ["string", "null"]},
                             "finalidade_medicamento": {"type": ["string", "null"]}

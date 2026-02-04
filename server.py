@@ -1009,8 +1009,13 @@ def analyze_extractions_with_openai(
             
             conclusao_policy = (
                 "POLÍTICA DE CONCLUSÃO MÉDICA (OBRIGATÓRIA):\n"
-                "- Extraia 'diagnostico_final_tratamento' (deficiência/CID, medicamento, finalidade). "
-                "'conclusao_medica': síntese da conclusão clínica do médico. Preencha se houver nos laudos.\n"
+                "- Extraia 'diagnostico_final_tratamento':\n"
+                "  * 'deficiencia': Nome da deficiência/doença (ex: Transtorno do Espectro Autista). Use MAIÚSCULAS para siglas (TEA, TDAH, TOD).\n"
+                "  * 'cid': TODOS os códigos CID encontrados (ex: F84.0; F70). Apenas os códigos.\n"
+                "  * 'deficiencia_e_CID': Campo combinado para retrocompatibilidade.\n"
+                "  * 'medicamento_prescrito': Lista de medicamentos.\n"
+                "  * 'finalidade_medicamento': Para que servem.\n"
+                "- 'conclusao_medica': síntese textual da conclusão clínica do médico. Preencha se houver nos laudos.\n"
             )
             relatorio_escolar_policy = (
                 "POLÍTICA DO RELATÓRIO ESCOLAR (OBRIGATÓRIA):\n"
