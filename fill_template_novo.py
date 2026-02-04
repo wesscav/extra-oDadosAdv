@@ -211,7 +211,7 @@ def prepare_replacements(structured: Dict[str, Any]) -> Dict[str, str]:
     replacements["detalhar o grau de parentesco das pessoas listadas no cadastro único"] = s(first_non_null(structured, [["dados_socioeconomicos", "grau_parentesco_CadUnico"]]))
     replacements["nome da avó"] = s(first_non_null(structured, [["dados_socioeconomicos", "nome_avo"]]))
     replacements["valor exato da aposentadoria – R$ ___ "] = s(first_non_null(structured, [["dados_socioeconomicos", "valor_exato_aposentadoria"]]))
-    replacements['páginas do laudo social – "anexo 05, pgs. XX"'] = s(first_non_null(structured, [["dados_socioeconomicos", "paginas_laudo_social"]]))
+    replacements["páginas do laudo social – "anexo 05, pgs. XX""] = s(first_non_null(structured, [["dados_socioeconomicos", "paginas_laudo_social"]]))
 
     # dados processuais
     replacements["Número do benefício / NB"] = replacements.get("Número do benefício", "")

@@ -9,6 +9,7 @@ import time
 import uuid
 import tempfile
 import threading
+import unicodedata
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 from enum import Enum
@@ -34,6 +35,7 @@ from analyze_with_openai import (
     load_env,
     merge_structured_field,
     select_page_numbers_for_extraction,
+    ordenar_laudos_por_data,
 )
 from fill_template import prepare_replacements, process_document
 
@@ -250,6 +252,39 @@ def _format_cpf(cpf: str) -> str:
     return f"{digits[:3]}.{digits[3:6]}.{digits[6:9]}-{digits[9:]}"
 
 
+def _format_numero_beneficio(nb: str) -> str:
+    """Formata Número de Benefício (NB) para XXX.XXX.XXX-X."""
+    if not nb or not isinstance(nb, str):
+        return nb
+    
+    # Remove tudo que não é dígito
+    digits = ''.join(c for c in nb if c.isdigit())
+    
+    # Se não tem 10 dígitos, retorna original
+    if len(digits) != 10:
+        return nb
+    
+    # Formata XXX.XXX.XXX-X
+    return f"{digits[:3]}.{digits[3:6]}.{digits[6:9]}-{digits[9]}"
+
+
+def _format_endereco(endereco: str) -> str:
+    """Formata endereço adicionando /CE após o nome da cidade."""
+    if not endereco or not isinstance(endereco, str):
+        return endereco
+    
+    # Se já tem /CE, retorna
+    if '/CE' in endereco.upper():
+        return endereco
+    
+    # Adiciona /CE no final (assumindo que a cidade é a última parte)
+    endereco = endereco.strip()
+    if endereco:
+        return f"{endereco}/CE"
+    
+    return endereco
+
+
 _MESES_PT = {
     "janeiro": 1, "fevereiro": 2, "março": 3, "marco": 3, "abril": 4, "maio": 5,
     "junho": 6, "julho": 7, "agosto": 8, "setembro": 9, "outubro": 10,
@@ -290,21 +325,57 @@ def _format_date(val: str) -> str:
 
 
 def _format_cid(cid: str) -> str:
-    """Formata CID para garantir formato CID-XX ou CID-XX.X."""
+    """Formata CID para o formato CID-F.84.0; F.70.0; F.90.0."""
     if not cid or not isinstance(cid, str):
         return cid
     
     cid = cid.strip().upper()
     
-    # Se já começa com CID, retorna normalizado
-    if cid.startswith('CID'):
-        # Remove espaços extras e normaliza
-        cid = cid.replace('CID', 'CID-').replace('--', '-').replace(' ', '')
-        return cid
+    # Remove o prefixo CID se houver múltiplos
+    cid = cid.replace('CID-', '').replace('CID', '')
     
-    # Se é só o código (ex: F84.0), adiciona CID-
-    if len(cid) >= 3 and cid[0].isalpha():
-        return f"CID-{cid}"
+    # Separa por vírgula, ponto e vírgula ou barra
+    import re
+    codes = re.split(r'[;,/]', cid)
+    
+    formatted_codes = []
+    for code in codes:
+        code = code.strip()
+        if not code:
+            continue
+        
+        # Garante formato X.XX.X (letra.número.ponto.número)
+        # Remove espaços e normaliza
+        code = code.replace(' ', '')
+        
+        # Já está no formato correto? (ex: F.84.0)
+        if re.match(r'^[A-Z]\.\d+\.\d+$', code):
+            formatted_codes.append(code)
+        # Formato sem pontos? (ex: F840)
+        elif re.match(r'^[A-Z]\d+$', code):
+            letter = code[0]
+            numbers = code[1:]
+            if len(numbers) >= 2:
+                formatted_codes.append(f"{letter}.{numbers[:2]}.{numbers[2:] if len(numbers) > 2 else '0'}")
+        # Formato parcial? (ex: F84)
+        elif re.match(r'^[A-Z]\d{2,3}$', code):
+            letter = code[0]
+            numbers = code[1:]
+            if len(numbers) == 2:
+                formatted_codes.append(f"{letter}.{numbers}.0")
+            else:
+                formatted_codes.append(f"{letter}.{numbers[:2]}.{numbers[2:]}")
+        # Já tem um ponto? (ex: F84.0)
+        elif '.' in code and re.match(r'^[A-Z][\d\.]+$', code):
+            parts = code.split('.')
+            if len(parts) >= 2:
+                formatted_codes.append(f"{parts[0]}.{parts[1]}.{parts[2] if len(parts) > 2 else '0'}")
+        else:
+            # Mantém original se não conseguir formatar
+            formatted_codes.append(code)
+    
+    if formatted_codes:
+        return f"CID-{'; '.join(formatted_codes)}"
     
     return cid
 
@@ -317,8 +388,8 @@ def _capitalize_medical_term(term: str) -> str:
     # Lista de palavras que devem ficar em minúscula
     lowercase_words = {'de', 'da', 'do', 'das', 'dos', 'e', 'em', 'na', 'no', 'a', 'o', 'com', 'por'}
     
-    # Exceções: siglas médicas que devem ficar maiúsculas
-    uppercase_terms = {'tea', 'tdah', 'toc', 'tpt', 'tag'}
+    # Exceções: siglas médicas que devem ficar TODAS em maiúsculas
+    uppercase_terms = {'tea', 'tdah', 'tod', 'toc', 'tpt', 'tag', 'dpac', 'tda'}
     
     words = term.strip().split()
     result = []
@@ -326,14 +397,17 @@ def _capitalize_medical_term(term: str) -> str:
     for i, word in enumerate(words):
         word_lower = word.lower()
         
-        # Primeira palavra sempre capitalizada
+        # Remove pontuação para comparação
+        word_clean = word_lower.strip('.,;:!?')
+        
+        # Primeira palavra sempre capitalizada (ou maiúscula se for sigla)
         if i == 0:
-            if word_lower in uppercase_terms:
+            if word_clean in uppercase_terms:
                 result.append(word.upper())
             else:
                 result.append(word.capitalize())
         # Siglas em maiúscula
-        elif word_lower in uppercase_terms:
+        elif word_clean in uppercase_terms:
             result.append(word.upper())
         # Preposições em minúscula
         elif word_lower in lowercase_words:
@@ -373,6 +447,12 @@ def _get_field_type(path: List[str]) -> str:
         'representante_legal_cpf',
     }
     
+    # Número de benefício
+    nb_fields = {
+        'numero_beneficio_NB',
+        'numero_beneficio_NB_repetido',
+    }
+    
     # CID
     cid_fields = {
         'CID_da_doenca',
@@ -391,21 +471,35 @@ def _get_field_type(path: List[str]) -> str:
     medical_fields = {
         'especialidade_do_medico',
         'deficiencia_constatada',
-        'deficiencia_e_CID',
-        'deficiencia_associada_e_CID',
         'medicamento_prescrito',
     }
     
-    if last in name_fields or last in address_fields:
+    # Campos que devem preservar o texto original (sem formatação)
+    preserve_fields = {
+        'resumo',
+        'resumo_continuacao',
+        'conclusao_medica',
+        'trecho_clinico_relevante',
+        'deficiencia_e_CID',
+        'deficiencia_associada_e_CID',
+    }
+    
+    if last in name_fields:
         return 'name'
+    elif last in address_fields:
+        return 'address'
     elif last in cpf_fields:
         return 'cpf'
+    elif last in nb_fields:
+        return 'nb'
     elif last in cid_fields:
         return 'cid'
     elif last in date_fields:
         return 'date'
     elif last in medical_fields:
         return 'medical'
+    elif last in preserve_fields:
+        return 'preserve'
     else:
         return 'lowercase'
 
@@ -420,14 +514,20 @@ def _process_strings(obj: Any, path: List[str] = None) -> Any:
         
         if field_type == 'name':
             return _capitalize_name(obj)
+        elif field_type == 'address':
+            return _format_endereco(obj)
         elif field_type == 'cpf':
             return _format_cpf(obj)
+        elif field_type == 'nb':
+            return _format_numero_beneficio(obj)
         elif field_type == 'cid':
             return _format_cid(obj)
         elif field_type == 'date':
             return _format_date(obj)
         elif field_type == 'medical':
             return _capitalize_medical_term(obj)
+        elif field_type == 'preserve':
+            return obj  # Preserva o texto original sem modificação
         else:
             return obj.lower()
     
@@ -568,6 +668,19 @@ def _summarize_structured(structured: Dict[str, Any]) -> Dict[str, Any]:
                 return None
         return cur
 
+    # Resumo dos laudos
+    laudos_summary = []
+    laudos = g(["dados_medicos", "laudos"]) or []
+    if isinstance(laudos, list):
+        for i, laudo in enumerate(laudos[:5], 1):  # até 5 laudos
+            if laudo and isinstance(laudo, dict):
+                laudos_summary.append({
+                    "numero": i,
+                    "data": laudo.get("data_laudo"),
+                    "especialidade": laudo.get("especialidade_medico"),
+                    "medico": laudo.get("nome_medico"),
+                })
+
     return {
         "qualificacao": {
             "nome": g(["qualificacao_parte_autora", "nome"]),
@@ -579,12 +692,7 @@ def _summarize_structured(structured: Dict[str, Any]) -> Dict[str, Any]:
             "nb": g(["dados_requerimento_inss", "numero_beneficio_NB"]) or g(["dados_processuais", "numero_beneficio_NB_repetido"]),
             "der": g(["dados_requerimento_inss", "DER_data_entrada_requerimento"]),
         },
-        "laudo_principal": {
-            "deficiencia": g(["dados_medicos", "laudo_principal", "deficiencia_constatada"]),
-            "cid": g(["dados_medicos", "laudo_principal", "CID_da_doenca"]),
-            "data": g(["dados_medicos", "laudo_principal", "data_do_laudo"]),
-            "medico": g(["dados_medicos", "laudo_principal", "nome_do_medico"]),
-        },
+        "laudos": laudos_summary,
         "relatorio_escolar": {
             "data_emissao": g(["dados_medicos", "relatorio_escolar", "data_emissao"]),
             "primeiro_nome_autor": g(["dados_medicos", "relatorio_escolar", "primeiro_nome_do_autor"]),
@@ -706,7 +814,12 @@ def analyze_extractions_with_openai(
     system_msg = (
         "Você é um assistente que analisa laudos e extrai campos jurídicos e médicos. "
         "Retorne apenas JSON seguindo o schema de função. Se o dado não existir, retorne null. "
-        "Datas: use formato DD/MM/YYYY (ex: 05/12/2024). "
+        "REGRAS DE FORMATAÇÃO (OBRIGATÓRIAS):\n"
+        "1. Datas: use formato DD/MM/YYYY (ex: 05/12/2024).\n"
+        "2. Número de benefício (NB): use formato XXX.XXX.XXX-X (ex: 123.456.789-0).\n"
+        "3. Siglas de deficiências (TDAH, TOD, TEA): escreva em MAIÚSCULAS. Nomes de pessoas e descrições de deficiências: capitalize normalmente (primeira letra de cada palavra importante em maiúscula).\n"
+        "4. Endereço: após o nome da cidade, adicione /CE (estado em maiúsculo). Exemplo: 'Rua X, Fortaleza/CE'.\n"
+        "5. CID: Para campos de código CID puro (CID_da_doenca), use formato 'CID-10: F.84.0; F.70.0; F.90.0'. Para campos com descrição+CID (deficiencia_e_CID), use formato: 'Transtorno do Espectro Autista (TEA) Nível de suporte 1; Déficit intelectual leve, CID-10: F.84.0; F.70.0; F.90.0'.\n"
         "Se houver baixa confiança, inclua o valor e marque '[confiança baixa]'."
     )
 
@@ -715,39 +828,69 @@ def analyze_extractions_with_openai(
 
     INSS_KEYWORDS = ["inss", "instituto nacional", "do seguro social"]
 
+    def _normalize_ocr_text(s: str) -> str:
+        """Normaliza texto do OCR para matching robusto (lower + remove acentos)."""
+        t = (s or "").lower()
+        t = unicodedata.normalize("NFKD", t)
+        t = "".join(ch for ch in t if not unicodedata.combining(ch))
+        return t
+
+    def _get_page_text(ex: Dict[str, Any], page_number: int) -> str:
+        """Busca texto por `page_number` (fallback para o primeiro item)."""
+        for p in ex.get("pages", []) or []:
+            if p.get("page_number") == page_number:
+                return (p.get("text") or "")
+        # Alguns formatos podem carregar o número original em outro campo
+        for p in ex.get("pages", []) or []:
+            if p.get("orig_page_number") == page_number:
+                return (p.get("text") or "")
+        if isinstance(ex.get("pages"), list) and ex["pages"]:
+            return (ex["pages"][0].get("text") or "")
+        return ""
+
     def _is_inss_doc(ex: Dict[str, Any]) -> bool:
         # Documento do INSS: detecta por palavras-chave na página 1.
         # Não depende do total de páginas, para garantir que analisaremos as 6 primeiras páginas
         # mesmo em PDFs menores/recortados.
-        t1 = ""
-        if isinstance(ex.get("pages"), list) and ex["pages"]:
-            t1 = (ex["pages"][0].get("text") or "")
-        t1 = t1.lower()
+        t1 = _normalize_ocr_text(_get_page_text(ex, 1))
         return any(k in t1 for k in INSS_KEYWORDS)
 
     def _is_laudo_doc(ex: Dict[str, Any]) -> bool:
-        t1 = ""
-        if isinstance(ex.get("pages"), list) and ex["pages"]:
-            t1 = (ex["pages"][0].get("text") or "").lower()
-        return ("laudo" in t1) and ("médic" in t1 or "medic" in t1 or "crm" in t1 or "rqe" in t1)
+        """Detecta se o documento é um laudo médico."""
+        t1 = _normalize_ocr_text(_get_page_text(ex, 1))
+        
+        # Palavras-chave que identificam laudo (IMPORTANTE: todas em minúsculo pois t1 é lowercase)
+        strong_laudo_keywords = ["laudo medico", "atestado medico", "parecer medico", "relatorio medico"]
+        has_strong_laudo_keyword = any(kw in t1 for kw in strong_laudo_keywords)
+        laudo_keywords = ["laudo", "atestado", "parecer"]
+        has_laudo_keyword = any(kw in t1 for kw in laudo_keywords)
+        
+        # Indicadores médicos (expandido para aumentar detecção)
+        has_medical_indicator = any(indicator in t1 for indicator in [
+            "medic", "crm", "rqe", "especialidade",
+            "paciente", "diagnostico", "cid-", "cid:",
+            "tratamento", "consulta", "avaliacao", "neurologista",
+            "psiquiatra", "pediatra", "acompanhamento"
+        ])
+        
+        # Palavras de exclusão (não são laudos médicos)
+        exclude_keywords = []
+        is_excluded = any(kw in t1 for kw in exclude_keywords)
+        
+        # Se tiver uma keyword forte ("laudo medico"), aceita mesmo sem outros indicadores e IGNORA exclusão por "escola"
+        if has_strong_laudo_keyword:
+            return True
+            
+        return (has_laudo_keyword and has_medical_indicator) and not is_excluded
+    
+    def _is_relatorio_escolar(ex: Dict[str, Any]) -> bool:
+        """Detecta se é um relatório escolar."""
+        t1 = _normalize_ocr_text(_get_page_text(ex, 1))
+        escola_keywords = ["relatorio escolar", "escola", "colegio", "instituicao de ensino", "aluno"]
+        return any(kw in t1 for kw in escola_keywords) and ("relatorio" in t1)
 
-    def _score_psiquiatria(ex: Dict[str, Any], pages: List[int]) -> int:
-        score = 0
-        needles = ["psiquiatr", "psiquiátr", "psiquiatria", "psiquiatra"]
-        # olha só nas duas primeiras páginas analisadas
-        for pn in pages[: min(len(pages), 2)]:
-            txt = ""
-            for p in ex.get("pages", []) or []:
-                if p.get("page_number") == pn:
-                    txt = (p.get("text") or "").lower()
-                    break
-            for n in needles:
-                score += txt.count(n)
-        return score
-
-    # pré-calcula páginas analisadas e papéis dos laudos (principal x segundo)
+    # pré-calcula páginas analisadas por documento
     pages_by_source: Dict[str, List[int]] = {}
-    laudo_candidates: List[Tuple[str, int]] = []
     for ex_idx, ex in enumerate(extractions, start=1):
         source = ex.get("source") or f"documento_{ex_idx}"
         pages = select_page_numbers_for_extraction(
@@ -757,17 +900,6 @@ def analyze_extractions_with_openai(
             inss_min_total_pages=inss_min_total_pages,
         )
         pages_by_source[source] = pages
-        if _is_laudo_doc(ex):
-            laudo_candidates.append((source, _score_psiquiatria(ex, pages)))
-
-    laudo_roles: Dict[str, str] = { (ex.get("source") or f"documento_{i+1}") : "none" for i, ex in enumerate(extractions) }
-    if len(laudo_candidates) >= 2:
-        segundo = sorted(enumerate(laudo_candidates), key=lambda it: (-it[1][1], it[0]))[0][1][0]
-        principal = next((s for (s, _) in laudo_candidates if s != segundo), laudo_candidates[0][0])
-        laudo_roles[principal] = "principal"
-        laudo_roles[segundo] = "segundo"
-    elif len(laudo_candidates) == 1:
-        laudo_roles[laudo_candidates[0][0]] = "principal"
 
     for ex_idx, ex in enumerate(extractions, start=1):
         source = ex.get("source") or f"documento_{ex_idx}"
@@ -784,8 +916,8 @@ def analyze_extractions_with_openai(
             continue
 
         is_inss_doc = _is_inss_doc(ex)
-
-        laudo_role = laudo_roles.get(source, "none")
+        is_laudo = _is_laudo_doc(ex)
+        is_relatorio_esc = _is_relatorio_escolar(ex)
 
         chunks = [page_numbers] if pages_per_call <= 0 else [page_numbers[i : i + pages_per_call] for i in range(0, len(page_numbers), pages_per_call)]
         for chunk_idx, chunk in enumerate(chunks):
@@ -795,6 +927,19 @@ def analyze_extractions_with_openai(
                 task.update(progress=progress, message=f"Analisando {source} (parte {chunk_idx + 1}/{len(chunks)})...")
             
             chunk_text = build_text_from_ocr(ex, pages=chunk)
+            
+            # DEBUG: Log do texto extraído antes de enviar para OpenAI
+            print(f"\n{'='*80}")
+            print(f"[DEBUG OCR] Documento: {source}")
+            print(f"[DEBUG OCR] Chunk {chunk_idx + 1}/{len(chunks)}")
+            print(f"[DEBUG OCR] Páginas: {chunk}")
+            print(f"[DEBUG OCR] Tamanho do texto: {len(chunk_text)} caracteres")
+            print(f"[DEBUG OCR] Primeiras 500 caracteres:\n{chunk_text[:500]}")
+            print(f"[DEBUG OCR] É laudo? {is_laudo}")
+            print(f"[DEBUG OCR] É INSS? {is_inss_doc}")
+            print(f"[DEBUG OCR] É relatório escolar? {is_relatorio_esc}")
+            print(f"{'='*80}\n")
+            
             if not chunk_text.strip():
                 continue
 
@@ -843,8 +988,25 @@ def analyze_extractions_with_openai(
 
             laudo_policy = (
                 "POLÍTICA DOS LAUDOS (OBRIGATÓRIA):\n"
-                "- Existem 2 laudos médicos distintos. Não misture médico/especialidade/datas/CIDs entre eles.\n"
+                "- Identifique se ESTE documento é um laudo médico.\n"
             )
+            if is_laudo:
+                laudo_policy += (
+                    "- ESTE documento É UM LAUDO MÉDICO.\n"
+                    "- Extraia os seguintes campos e adicione ao array 'dados_medicos.laudos':\n"
+                    "  * data_laudo: Data de emissão do laudo (FORMATO OBRIGATÓRIO: DD/MM/YYYY)\n"
+                    "  * especialidade_medico: Especialidade do médico (ex: Neurologista, Psiquiatra, Pediatra)\n"
+                    "  * nome_medico: Nome completo do médico\n"
+                    "  * descricao: Resumo COMPLETO do laudo. OBRIGATÓRIO incluir: 1) Diagnóstico exato; 2) CIDs citados; 3) Medicamentos prescritos (nomes e dosagens); 4) Conclusão médica. Comece com verbo em minúscula (ex: 'atesta que o paciente é portador de [Diagnóstico] (CID X), faz uso da medicação [Remédios] e necessita de...').\n"
+                    "- Retorne um array com 1 laudo contendo estas informações.\n"
+                    "- NÃO misture informações de diferentes laudos.\n"
+                )
+            else:
+                laudo_policy += (
+                    "- ESTE documento NÃO é um laudo médico.\n"
+                    "- Retorne 'dados_medicos.laudos' como array vazio [].\n"
+                )
+            
             conclusao_policy = (
                 "POLÍTICA DE CONCLUSÃO MÉDICA (OBRIGATÓRIA):\n"
                 "- Extraia 'diagnostico_final_tratamento' (deficiência/CID, medicamento, finalidade). "
@@ -856,21 +1018,6 @@ def analyze_extractions_with_openai(
                 "(dificuldades, necessidades, limitações, recomendações, desempenho). "
                 "NÃO inclua texto introdutório como 'este relatório visa fornecer informações...' ou similares.\n"
             )
-            if laudo_role == "principal":
-                laudo_policy += (
-                    "- ESTE documento é o PRIMEIRO LAUDO (laudo_principal). Preencha COMPLETAMENTE 'dados_medicos.laudo_principal'.\n"
-                    "- O campo 'trecho_clinico_relevante' (descrição do laudo) DEVE começar com 'Recomenda' (ex: 'Recomenda acompanhamento...', 'Recomenda-se que...').\n"
-                    "- Retorne 'dados_medicos.laudo_psiquiatrico_segundo_laudo' como null.\n"
-                )
-            elif laudo_role == "segundo":
-                laudo_policy += (
-                    "- ESTE documento é o SEGUNDO LAUDO (laudo_psiquiatrico_segundo_laudo). Preencha COMPLETAMENTE 'dados_medicos.laudo_psiquiatrico_segundo_laudo'.\n"
-                    "- Retorne 'dados_medicos.laudo_principal' como null.\n"
-                )
-            else:
-                laudo_policy += (
-                    "- Se este documento não for um dos laudos, retorne ambos os blocos de laudo como null.\n"
-                )
 
             user_msg = (
                 f"Documento fonte: {source}\n"
@@ -902,6 +1049,16 @@ def analyze_extractions_with_openai(
 
         if (ex_idx < len(extractions)) and delay_between_calls > 0:
             time.sleep(delay_between_calls)
+
+    # Ordena laudos por data (mais antigo → mais recente) e limita a 5
+    laudos = structured_result.get("dados_medicos", {}).get("laudos", [])
+    if laudos and isinstance(laudos, list):
+        laudos_ordenados = ordenar_laudos_por_data(laudos)
+        # Limita a 5 laudos
+        laudos_ordenados = laudos_ordenados[:5]
+        if "dados_medicos" not in structured_result:
+            structured_result["dados_medicos"] = {}
+        structured_result["dados_medicos"]["laudos"] = laudos_ordenados
 
     return structured_result, per_doc
 

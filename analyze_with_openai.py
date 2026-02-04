@@ -21,6 +21,7 @@ import json
 import os
 import sys
 import time
+import unicodedata
 from typing import Any, Dict, List, Optional, Tuple
 
 try:
@@ -49,6 +50,14 @@ INSS_KEYWORDS = [
     "INSS",
     "Instituto Nacional do Seguro Social"
 ]
+
+
+def _norm_text(s: str) -> str:
+    """Normaliza texto para matching robusto (lower + remove acentos)."""
+    t = (s or "").lower()
+    t = unicodedata.normalize("NFKD", t)
+    t = "".join(ch for ch in t if not unicodedata.combining(ch))
+    return t
 FUNCTION_SCHEMA = {
     "name": "extrair_campos_laudo",
     "description": "Extrai campos administrativos, médicos e processuais de um texto de laudo.",
@@ -79,16 +88,18 @@ FUNCTION_SCHEMA = {
             "dados_medicos": {
                 "type": "object",
                 "properties": {
-                    "laudo_principal": {
-                        "type": "object",
-                        "properties": {
-                            "deficiencia_constatada": {"type": ["string", "null"]},
-                            "CID_da_doenca": {"type": ["string", "null"]},
-                            "data_do_laudo": {"type": ["string", "null"]},
-                            "especialidade_do_medico": {"type": ["string", "null"]},
-                            "nome_do_medico": {"type": ["string", "null"]},
-                            "trecho_clinico_relevante": {"type": ["string", "null"]}
-                        }
+                    "laudos": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "data_laudo": {"type": ["string", "null"], "description": "Data de emissão do laudo no formato DD/MM/YYYY"},
+                                "especialidade_medico": {"type": ["string", "null"], "description": "Especialidade do médico (ex: Neurologista, Psiquiatra)"},
+                                "nome_medico": {"type": ["string", "null"], "description": "Nome completo do médico"},
+                                "descricao": {"type": ["string", "null"], "description": "Resumo COMPLETO do laudo. Incluir: Diagnóstico, CIDs, Medicamentos e Conclusão. Comece com verbo em minúscula."}
+                            }
+                        },
+                        "maxItems": 5
                     },
                     "relatorio_escolar": {
                         "type": "object",
@@ -97,14 +108,6 @@ FUNCTION_SCHEMA = {
                             "primeiro_nome_do_autor": {"type": ["string", "null"]},
                             "resumo": {"type": ["string", "null"]},
                             "resumo_continuacao": {"type": ["string", "null"]}
-                        }
-                    },
-                    "laudo_psiquiatrico_segundo_laudo": {
-                        "type": "object",
-                        "properties": {
-                            "data_segundo_laudo": {"type": ["string", "null"]},
-                            "nome_medico": {"type": ["string", "null"]},
-                            "resumo": {"type": ["string", "null"]}
                         }
                     },
                     "diagnostico_final_tratamento": {
@@ -237,8 +240,8 @@ def _get_page_text(ocr_like: Dict[str, Any], page_number: int) -> str:
 
 
 def _contains_inss_keywords(text: str) -> bool:
-    t = (text or "").lower()
-    return any(k in t for k in INSS_KEYWORDS)
+    t = _norm_text(text)
+    return any(_norm_text(k) in t for k in INSS_KEYWORDS)
 
 
 def _is_inss_document(ocr_like: Dict[str, Any], inss_min_total_pages: int) -> bool:
@@ -267,9 +270,97 @@ def _find_pages_containing(ocr_like: Dict[str, Any], pages: List[int], needle: s
 
 
 def _is_laudo_document(ocr_like: Dict[str, Any]) -> bool:
-    """Heurística simples para detectar se é um laudo médico."""
-    t1 = _get_page_text(ocr_like, 1).lower()
-    return ("laudo" in t1) and ("médic" in t1 or "medic" in t1 or "crm" in t1 or "rqe" in t1)
+    """Heurística simples para detectar se é um laudo médico.
+    
+    Detecta por palavras-chave na página 1, excluindo documentos do INSS e relatórios escolares.
+    """
+    t1 = _norm_text(_get_page_text(ocr_like, 1))
+    
+    # Palavras-chave que identificam laudo (IMPORTANTE: todas em minúsculo pois t1 é lowercase)
+    strong_laudo_keywords = ["laudo medico", "atestado medico", "parecer medico", "relatorio medico"]
+    has_strong_laudo_keyword = any(kw in t1 for kw in strong_laudo_keywords)
+    laudo_keywords = ["laudo", "atestado", "parecer"]
+    has_laudo_keyword = any(kw in t1 for kw in laudo_keywords)
+    
+    # Indicadores médicos (expandido para aumentar detecção)
+    has_medical_indicator = any(indicator in t1 for indicator in [
+        "medic", "crm", "rqe", "especialidade",
+        "paciente", "diagnostico", "cid-", "cid:",
+        "tratamento", "consulta", "avaliacao", "neurologista",
+        "psiquiatra", "pediatra", "acompanhamento"
+    ])
+    
+    # Palavras de exclusão (não são laudos médicos)
+    exclude_keywords = ["relatorio escolar", "escola", "colegio", "instituicao de ensino"]
+    is_excluded = any(kw in t1 for kw in exclude_keywords)
+    
+    # Se tiver uma keyword forte ("laudo medico"), aceita mesmo sem outros indicadores e IGNORA exclusão por "escola"
+    if has_strong_laudo_keyword:
+        return True
+
+    return (has_laudo_keyword and has_medical_indicator) and not is_excluded
+
+
+def _is_relatorio_escolar(ocr_like: Dict[str, Any]) -> bool:
+    """Detecta se é um relatório escolar."""
+    t1 = _norm_text(_get_page_text(ocr_like, 1))
+    escola_keywords = ["relatorio escolar", "escola", "colegio", "instituicao de ensino", "aluno"]
+    return any(kw in t1 for kw in escola_keywords) and ("relatorio" in t1)
+
+
+def ordenar_laudos_por_data(laudos: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Ordena laudos por data (mais antigo → mais recente).
+    
+    Args:
+        laudos: Lista de dicionários com campo 'data_laudo' no formato DD/MM/YYYY
+    
+    Returns:
+        Lista ordenada de laudos
+    """
+    from datetime import datetime
+    
+    def parse_data_brasileira(data_str: Any) -> datetime:
+        """Converte DD/MM/YYYY para datetime."""
+        if not data_str or not isinstance(data_str, str):
+            return datetime.min  # data mínima se inválida
+        
+        try:
+            # Remove espaços
+            data_str = data_str.strip()
+            
+            # Formato DD/MM/YYYY ou DD/MM/YY
+            if "/" in data_str:
+                parts = data_str.split("/")
+                if len(parts) == 3:
+                    day = int(parts[0])
+                    month = int(parts[1])
+                    year = int(parts[2])
+                    
+                    # Converte ano de 2 dígitos para 4
+                    if year < 100:
+                        year += 2000 if year < 50 else 1900
+                    
+                    return datetime(year, month, day)
+            
+            # Formato DD-MM-YYYY
+            if "-" in data_str:
+                parts = data_str.split("-")
+                if len(parts) == 3:
+                    day = int(parts[0])
+                    month = int(parts[1])
+                    year = int(parts[2])
+                    
+                    if year < 100:
+                        year += 2000 if year < 50 else 1900
+                    
+                    return datetime(year, month, day)
+            
+            return datetime.min
+        except (ValueError, IndexError):
+            return datetime.min
+    
+    # Ordena por data (mais antiga primeiro)
+    return sorted(laudos, key=lambda l: parse_data_brasileira(l.get("data_laudo", "")))
 
 
 def _score_psiquiatria(ocr_like: Dict[str, Any], pages: List[int]) -> int:
@@ -294,29 +385,19 @@ def _assign_laudo_roles(
     - escolhe o mais "psiquiatria" como 'segundo'
     - o outro como 'principal'
     - os demais: 'none'
+    
+    NOTA: Esta função está obsoleta com a nova arquitetura de múltiplos laudos.
+    Mantida temporariamente para compatibilidade.
     """
-    laudos: List[Tuple[str, int]] = []  # (source, score)
-    for ex in extractions:
-        source = ex.get("source") or ""
-        pages = selected_pages_by_source.get(source, []) or []
-        if _is_laudo_document(ex):
-            laudos.append((source, _score_psiquiatria(ex, pages)))
-
+    # Retorna 'laudo' para todos os documentos que são laudos médicos
     roles: Dict[str, str] = {}
     for ex in extractions:
-        s = ex.get("source") or ""
-        roles[s] = "none"
-
-    if len(laudos) >= 2:
-        # escolhe 'segundo' pelo maior score; desempate pela ordem de aparição
-        segundo_source = sorted(enumerate(laudos), key=lambda it: (-it[1][1], it[0]))[0][1][0]
-        # 'principal' = primeiro laudo diferente do segundo na ordem original
-        principal_source = next((s for (s, _) in laudos if s != segundo_source), laudos[0][0])
-        roles[principal_source] = "principal"
-        roles[segundo_source] = "segundo"
-    elif len(laudos) == 1:
-        roles[laudos[0][0]] = "principal"
-
+        source = ex.get("source") or ""
+        if _is_laudo_document(ex):
+            roles[source] = "laudo"
+        else:
+            roles[source] = "none"
+    
     return roles
 
 
@@ -354,7 +435,17 @@ def select_page_numbers_for_extraction(
 def merge_structured_field(target: Dict[str, Any], source: Dict[str, Any]) -> None:
     for key, source_value in source.items():
         target_value = target.get(key)
-        if isinstance(source_value, dict):
+        
+        # Caso especial: merge de arrays de laudos
+        if key == "laudos" and isinstance(source_value, list):
+            if not isinstance(target_value, list):
+                target[key] = []
+                target_value = target[key]
+            # Adiciona laudos do source ao target (acumula)
+            for laudo in source_value:
+                if laudo and isinstance(laudo, dict):
+                    target_value.append(laudo)
+        elif isinstance(source_value, dict):
             if not isinstance(target_value, dict):
                 target[key] = {}
                 target_value = target[key]
@@ -474,6 +565,20 @@ def extract_from_response(resp: Dict[str, Any]) -> Dict[str, Any]:
     content = content.strip()
     if not content:
         raise RuntimeError("No content in response message")
+    
+    # Remove markdown code blocks if present
+    if content.startswith("```"):
+        # Remove opening ```json or ```
+        lines = content.split("\n", 1)
+        if len(lines) > 1:
+            content = lines[1]
+        else:
+            content = content[3:]
+        # Remove closing ```
+        if content.endswith("```"):
+            content = content.rsplit("\n```", 1)[0]
+        content = content.strip()
+    
     try:
         return json.loads(content)
     except Exception as e:
@@ -525,7 +630,12 @@ def main(argv: Optional[List[str]] = None) -> int:
     system_msg = (
         "Você é um assistente que analisa laudos e extrai campos jurídicos e médicos. "
         "Retorne apenas JSON seguindo o schema de função. Se o dado não existir, retorne null. "
-        "Datas: use formato DD/MM/YYYY (ex: 05/12/2024). "
+        "REGRAS DE FORMATAÇÃO (OBRIGATÓRIAS):\n"
+        "1. Datas: use formato DD/MM/YYYY (ex: 05/12/2024).\n"
+        "2. Número de benefício (NB): use formato XXX.XXX.XXX-X (ex: 123.456.789-0).\n"
+        "3. Siglas de deficiências (TDAH, TOD, TEA): escreva em MAIÚSCULAS. Nomes de pessoas e descrições de deficiências: capitalize normalmente (primeira letra de cada palavra importante em maiúscula).\n"
+        "4. Endereço: após o nome da cidade, adicione /CE (estado em maiúsculo). Exemplo: 'Rua X, Fortaleza/CE'.\n"
+        "5. CID: Para campos de código CID puro (CID_da_doenca), use formato 'CID-10: F.84.0; F.70.0; F.90.0'. Para campos com descrição+CID (deficiencia_e_CID), use formato: 'Transtorno do Espectro Autista (TEA) Nível de suporte 1; Déficit intelectual leve, CID-10: F.84.0; F.70.0; F.90.0'.\n"
         "Se houver baixa confiança, inclua o valor e marque '[confiança baixa]'."
     )
 
@@ -625,25 +735,26 @@ def main(argv: Optional[List[str]] = None) -> int:
 
                 laudo_policy = (
                     "POLÍTICA DOS LAUDOS (OBRIGATÓRIA):\n"
-                    "- Existem 2 laudos médicos distintos. Não misture médico/especialidade/datas/CIDs entre eles.\n"
+                    "- Identifique se ESTE documento é um laudo médico.\n"
                 )
-                if laudo_role == "principal":
+                is_laudo = laudo_role == "laudo"
+                is_relatorio_esc = _is_relatorio_escolar(ex)
+                
+                if is_laudo:
                     laudo_policy += (
-                        "- ESTE documento é o PRIMEIRO LAUDO (laudo_principal).\n"
-                        "- Preencha COMPLETAMENTE 'dados_medicos.laudo_principal' (incluindo nome_do_medico e especialidade_do_medico) e campos correlatos do laudo.\n"
-                        "- O campo 'trecho_clinico_relevante' (descrição do laudo) DEVE começar com 'Recomenda' (ex: 'Recomenda acompanhamento...', 'Recomenda-se que...').\n"
-                        "- Retorne 'dados_medicos.laudo_psiquiatrico_segundo_laudo' como null (ou subcampos null).\n"
-                    )
-                elif laudo_role == "segundo":
-                    laudo_policy += (
-                        "- ESTE documento é o SEGUNDO LAUDO (laudo_psiquiatrico_segundo_laudo).\n"
-                        "- Preencha COMPLETAMENTE 'dados_medicos.laudo_psiquiatrico_segundo_laudo'.\n"
-                        "- Retorne 'dados_medicos.laudo_principal' como null (ou subcampos null).\n"
+                        "- ESTE documento É UM LAUDO MÉDICO.\n"
+                        "- Extraia os seguintes campos e adicione ao array 'dados_medicos.laudos':\n"
+                        "  * data_laudo: Data de emissão do laudo (FORMATO OBRIGATÓRIO: DD/MM/YYYY)\n"
+                        "  * especialidade_medico: Especialidade do médico (ex: Neurologista, Psiquiatra, Pediatra)\n"
+                        "  * nome_medico: Nome completo do médico\n"
+                        "  * descricao: Descrição/conclusão do laudo (deve começar com verbo em minúscula: 'recomenda', 'atesta', 'conclui')\n"
+                        "- Retorne um array com 1 laudo contendo estas informações.\n"
+                        "- NÃO misture informações de diferentes laudos.\n"
                     )
                 else:
                     laudo_policy += (
-                        "- ESTE documento não deve preencher campos de laudo, a menos que esteja claramente contido nele.\n"
-                        "- Se não for um dos 2 laudos, retorne ambos os blocos de laudo como null.\n"
+                        "- ESTE documento NÃO é um laudo médico.\n"
+                        "- Retorne 'dados_medicos.laudos' como array vazio [].\n"
                     )
 
                 conclusao_policy = (
@@ -822,6 +933,15 @@ def main(argv: Optional[List[str]] = None) -> int:
     if not structured_result:
         print("A API não retornou nenhum conteúdo estruturado.", file=sys.stderr)
         return 4
+
+    # Ordena laudos por data (mais antigo → mais recente)
+    laudos = structured_result.get("dados_medicos", {}).get("laudos", [])
+    if laudos and isinstance(laudos, list):
+        laudos_ordenados = ordenar_laudos_por_data(laudos)
+        # Limita a 5 laudos
+        laudos_ordenados = laudos_ordenados[:5]
+        structured_result["dados_medicos"]["laudos"] = laudos_ordenados
+        print(f"Encontrados e ordenados {len(laudos_ordenados)} laudo(s) por data")
 
     with open(args.output, "w", encoding="utf-8") as f:
         json.dump(structured_result, f, ensure_ascii=False, indent=2)

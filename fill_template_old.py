@@ -195,6 +195,14 @@ def prepare_replacements(structured: Dict[str, Any]) -> Dict[str, str]:
     replacements["continuação do resumo do relatório escolar"] = format_paragraph_capitalization(resumo_cont) if resumo_cont else ""
     replacements["continua o resumo do relatório escolar"] = replacements["continuação do resumo do relatório escolar"]
 
+    # segundo laudo
+    replacements["data do “segundo laudo”"] = format_date_to_dd_mm_yyyy(first_non_null(structured, [["dados_medicos", "laudo_psiquiatrico_segundo_laudo", "data_segundo_laudo"]]))
+    replacements["Nome do médico segundo"] = s(first_non_null(structured, [["dados_medicos", "laudo_psiquiatrico_segundo_laudo", "nome_medico"]]))
+    replacements["Nome do médico"] = replacements["Nome do médico segundo"]  # alias (laudo psiquiátrico)
+    resumo_laudo = s(first_non_null(structured, [["dados_medicos", "laudo_psiquiatrico_segundo_laudo", "resumo"]]))
+    replacements["resumo do laudo médico"] = format_paragraph_capitalization(resumo_laudo) if resumo_laudo else ""
+
+
     # diagnostico e tratamento
     conclusao = s(first_non_null(structured, [["dados_medicos", "diagnostico_final_tratamento", "conclusao_medica"]]))
     replacements["conclusão médica"] = format_paragraph_capitalization(conclusao) if conclusao else ""
@@ -211,7 +219,7 @@ def prepare_replacements(structured: Dict[str, Any]) -> Dict[str, str]:
     replacements["detalhar o grau de parentesco das pessoas listadas no cadastro único"] = s(first_non_null(structured, [["dados_socioeconomicos", "grau_parentesco_CadUnico"]]))
     replacements["nome da avó"] = s(first_non_null(structured, [["dados_socioeconomicos", "nome_avo"]]))
     replacements["valor exato da aposentadoria – R$ ___ "] = s(first_non_null(structured, [["dados_socioeconomicos", "valor_exato_aposentadoria"]]))
-    replacements['páginas do laudo social – "anexo 05, pgs. XX"'] = s(first_non_null(structured, [["dados_socioeconomicos", "paginas_laudo_social"]]))
+    replacements["páginas do laudo social – “anexo 05, pgs. XX”"] = s(first_non_null(structured, [["dados_socioeconomicos", "paginas_laudo_social"]]))
 
     # dados processuais
     replacements["Número do benefício / NB"] = replacements.get("Número do benefício", "")

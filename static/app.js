@@ -194,9 +194,20 @@ function setDeep(structured, path, value) {
   let cur = structured;
   for (let i = 0; i < path.length - 1; i++) {
     const key = path[i];
-    if (!cur[key] || typeof cur[key] !== "object") cur[key] = {};
+    
+    // Se o próximo elemento no path é um número, o atual deve ser um array
+    if (typeof path[i + 1] === "number") {
+      if (!Array.isArray(cur[key])) {
+        cur[key] = [];
+      }
+    } else {
+      if (!cur[key] || typeof cur[key] !== "object") {
+        cur[key] = {};
+      }
+    }
     cur = cur[key];
   }
+  
   const last = path[path.length - 1];
   const trimmed = (value ?? "").toString().trim();
   
@@ -321,22 +332,33 @@ function renderSummaryFromStructured(structured) {
         ["Data de entrada do requerimento (DER)", ["dados_requerimento_inss", "DER_data_entrada_requerimento"]],
       ],
     ],
-    [
-      "Dados Clínicos Gerais",
+  ];
+
+  // Adiciona blocos para SEMPRE 5 laudos (mesmo que vazios)
+  // Garante que a estrutura exista para não dar erro
+  if (!structured.dados_medicos) structured.dados_medicos = {};
+  if (!Array.isArray(structured.dados_medicos.laudos)) structured.dados_medicos.laudos = [];
+
+  for (let i = 0; i < 5; i++) {
+    // Se não existir objeto na posição i, cria um vazio para permitir edição
+    if (!structured.dados_medicos.laudos[i]) {
+       structured.dados_medicos.laudos[i] = {};
+    }
+
+    const laudoNum = i + 1;
+    blocks.push([
+      `Laudo Médico ${laudoNum}`,
       [
-        ["Deficiência constatada (laudo)", ["dados_medicos", "laudo_principal", "deficiencia_constatada"]],
-        ["CID", ["dados_medicos", "laudo_principal", "CID_da_doenca"]],
+        [`Data do laudo ${laudoNum}`, ["dados_medicos", "laudos", i, "data_laudo"]],
+        [`Especialidade do médico ${laudoNum}`, ["dados_medicos", "laudos", i, "especialidade_medico"]],
+        [`Nome do médico ${laudoNum}`, ["dados_medicos", "laudos", i, "nome_medico"]],
+        [`Descrição do laudo ${laudoNum}`, ["dados_medicos", "laudos", i, "descricao"]],
       ],
-    ],
-    [
-      "Detalhamento do Primeiro Laudo Médico",
-      [
-        ["Data do laudo", ["dados_medicos", "laudo_principal", "data_do_laudo"]],
-        ["Especialidade do médico", ["dados_medicos", "laudo_principal", "especialidade_do_medico"]],
-        ["Nome do médico", ["dados_medicos", "laudo_principal", "nome_do_medico"]],
-        ["Descrição do laudo", ["dados_medicos", "laudo_principal", "trecho_clinico_relevante"]],
-      ],
-    ],
+    ]);
+  }
+
+  // Adiciona blocos fixos restantes
+  blocks.push(
     [
       "Dados Escolares/Pedagógicos",
       [
@@ -345,14 +367,6 @@ function renderSummaryFromStructured(structured) {
         ["Resumo do relatório escolar", ["dados_medicos", "relatorio_escolar", "resumo"]],
         // o texto do template pode variar; aqui mostramos como “continuação”
         ["Continuação do resumo do relatório escolar", ["dados_medicos", "relatorio_escolar", "resumo_continuacao"]],
-      ],
-    ],
-    [
-      "Detalhamento do Segundo Laudo (Psiquiátrico)",
-      [
-        ["Data do segundo laudo", ["dados_medicos", "laudo_psiquiatrico_segundo_laudo", "data_segundo_laudo"]],
-        ["Nome do médico", ["dados_medicos", "laudo_psiquiatrico_segundo_laudo", "nome_medico"]],
-        ["Resumo do laudo", ["dados_medicos", "laudo_psiquiatrico_segundo_laudo", "resumo"]],
       ],
     ],
     [
@@ -365,7 +379,7 @@ function renderSummaryFromStructured(structured) {
         ["Finalidade do medicamento", ["dados_medicos", "diagnostico_final_tratamento", "finalidade_medicamento"]],
       ],
     ],
-  ];
+  );
 
   function wantsTextarea(path) {
     const last = path[path.length - 1] || "";
@@ -375,7 +389,8 @@ function renderSummaryFromStructured(structured) {
       last.includes("finalidade_") ||
       last.includes("endereco") ||
       last.includes("observacao") ||
-      last.includes("conclusao_medica")
+      last.includes("conclusao_medica") ||
+      last.includes("descricao") // descrição do laudo
     );
   }
 
