@@ -140,6 +140,19 @@ FUNCTION_SCHEMA = {
                     "locais_repeticao": {"type": ["string", "null"]},
                     "observacao_inconsistencia": {"type": ["string", "null"]}
                 }
+            },
+            "dados_avaliacao_social_pericia": {
+                "type": "object",
+                "description": "Seção 'INFORMAÇÕES DA AVALIAÇÃO SOCIAL E PERÍCIA MÉDICA' com Fatores Ambientais, Atividades e Participações, Funções do Corpo e Qualificadores Finais.",
+                "properties": {
+                    "contem_avaliacao_social_pericia_medica": {"type": ["boolean", "null"], "description": "True se o documento contiver essa seção (qualquer variação de maiúsculas/minúsculas)."},
+                    "fatores_ambientais_qualificador": {"type": ["string", "null"], "description": "Qualificador final: GRAVE, MODERADA ou LEVE. Null se não houver seção."},
+                    "atividades_participacoes_qualificador": {"type": ["string", "null"], "description": "Qualificador final: GRAVE, MODERADA ou LEVE."},
+                    "funcoes_corpo_qualificador": {"type": ["string", "null"], "description": "Qualificador final: GRAVE, MODERADA ou LEVE."},
+                    "fatores_ambientais_notas_detalhadas": {"type": ["string", "null"], "description": "Preencher SOMENTE quando fatores_ambientais_qualificador for LEVE. Formato: e1:3 ; e2:3 ; e3:3 ; e4:3 ; e5:3 (valores da tabela)."},
+                    "atividades_participacoes_notas_detalhadas": {"type": ["string", "null"], "description": "Preencher SOMENTE quando atividades_participacoes_qualificador for LEVE. Formato: d1:1 ; d2:1 ; ... ; d9:2."},
+                    "funcoes_corpo_notas_detalhadas": {"type": ["string", "null"], "description": "Preencher SOMENTE quando funcoes_corpo_qualificador for LEVE. Formato: b1:1 ; b2:0 ; ... ; b8:0."}
+                }
             }
         }
     }
@@ -771,6 +784,18 @@ def main(argv: Optional[List[str]] = None) -> int:
                     "(dificuldades, necessidades, limitações, recomendações, desempenho).\n"
                     "- NÃO inclua texto introdutório como 'este relatório visa fornecer informações...', 'com foco nas necessidades especiais...' ou similares.\n"
                 )
+                avaliacao_social_policy = (
+                    "POLÍTICA DA AVALIAÇÃO SOCIAL E PERÍCIA MÉDICA (OBRIGATÓRIA):\n"
+                    "- Procure no texto a seção 'INFORMAÇÕES DA AVALIAÇÃO SOCIAL E PERÍCIA MÉDICA' (ou variações de maiúsculas/minúsculas).\n"
+                    "- Se existir, identifique as três dimensões e a tabela 'Qualificadores Finais':\n"
+                    "  * Fatores Ambientais (tabela com e1, e2, e3, e4, e5)\n"
+                    "  * Atividades e Participação(s) (tabela com d1 a d9)\n"
+                    "  * Funções do Corpo (tabela com b1 a b8)\n"
+                    "- Preencha 'contem_avaliacao_social_pericia_medica': true e os qualificadores (GRAVE, MODERADA ou LEVE) para cada dimensão.\n"
+                    "- Quando o qualificador de uma dimensão for LEVE (qualquer variação de maiúsculas/minúsculas), preencha o campo de notas_detalhadas no formato:\n"
+                    "  'label1:valor1 ; label2:valor2 ; ...' (ex: b1:1 ; b2:0 ; b3:0 ; b4:0 ; b5:0 ; b6:0 ; b7:0 ; b8:0).\n"
+                    "- Se o documento NÃO tiver essa seção, deixe contem_avaliacao_social_pericia_medica false e os demais null.\n"
+                )
 
                 user_msg = (
                     f"Documento fonte: {source}\n"
@@ -780,6 +805,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                     + laudo_policy
                     + conclusao_policy
                     + relatorio_escolar_policy
+                    + avaliacao_social_policy
                     + "Texto:\n"
                     + chunk_text
                 )
@@ -901,6 +927,13 @@ def main(argv: Optional[List[str]] = None) -> int:
                 "(dificuldades, necessidades, limitações, recomendações, desempenho).\n"
                 "- NÃO inclua texto introdutório como 'este relatório visa fornecer informações...', 'com foco nas necessidades especiais...' ou similares.\n"
             )
+            avaliacao_social_policy = (
+                "POLÍTICA DA AVALIAÇÃO SOCIAL E PERÍCIA MÉDICA (OBRIGATÓRIA):\n"
+                "- Procure no texto a seção 'INFORMAÇÕES DA AVALIAÇÃO SOCIAL E PERÍCIA MÉDICA' (ou variações de maiúsculas/minúsculas).\n"
+                "- Se existir, identifique as três dimensões e a tabela 'Qualificadores Finais': Fatores Ambientais (e1-e5), Atividades e Participação(s) (d1-d9), Funções do Corpo (b1-b8).\n"
+                "- Preencha os qualificadores (GRAVE, MODERADA ou LEVE). Quando for LEVE, preencha notas_detalhadas no formato 'label:valor ; label:valor ; ...'.\n"
+                "- Se não houver essa seção, deixe contem_avaliacao_social_pericia_medica false e os demais null.\n"
+            )
 
             user_msg = (
                 "Analise o texto a seguir e preencha os campos do schema. Retorne somente o JSON.\n"
@@ -908,6 +941,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                 + personal_data_hint
                 + conclusao_policy
                 + relatorio_escolar_policy
+                + avaliacao_social_policy
                 + "Texto:\n"
                 + chunk_text
             )

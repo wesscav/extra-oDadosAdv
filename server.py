@@ -512,6 +512,13 @@ def _get_field_type(path: List[str]) -> str:
         'trecho_clinico_relevante',
         'deficiencia_e_CID',
         'deficiencia_associada_e_CID',
+        # Avaliação social e perícia médica
+        'fatores_ambientais_qualificador',
+        'atividades_participacoes_qualificador',
+        'funcoes_corpo_qualificador',
+        'fatores_ambientais_notas_detalhadas',
+        'atividades_participacoes_notas_detalhadas',
+        'funcoes_corpo_notas_detalhadas',
     }
     
     if last in name_fields:
@@ -711,6 +718,25 @@ def _summarize_structured(structured: Dict[str, Any]) -> Dict[str, Any]:
                     "medico": laudo.get("nome_medico"),
                 })
 
+    # Avaliação social e perícia médica (qualificadores + resumo do resultado)
+    aval = g(["dados_avaliacao_social_pericia"]) or {}
+    avaliacao_social = None
+    if aval.get("contem_avaliacao_social_pericia_medica"):
+        partes = []
+        if (str(aval.get("fatores_ambientais_qualificador") or "").strip().upper()) == "LEVE":
+            n = aval.get("fatores_ambientais_notas_detalhadas") or ""
+            partes.append(f"Fatores Ambientais deu Leve, notas: {n}" if n else "Fatores Ambientais deu Leve")
+        if (str(aval.get("atividades_participacoes_qualificador") or "").strip().upper()) == "LEVE":
+            n = aval.get("atividades_participacoes_notas_detalhadas") or ""
+            partes.append(f"Atividades e Participações deu Leve, notas: {n}" if n else "Atividades e Participações deu Leve")
+        if (str(aval.get("funcoes_corpo_qualificador") or "").strip().upper()) == "LEVE":
+            n = aval.get("funcoes_corpo_notas_detalhadas") or ""
+            partes.append(f"Funções do Corpo deu Leve, notas: {n}" if n else "Funções do Corpo deu Leve")
+        if partes:
+            avaliacao_social = ". ".join(partes) + "."
+        else:
+            avaliacao_social = "Documento contém a seção; nenhuma dimensão com qualificador Leve."
+
     return {
         "qualificacao": {
             "nome": g(["qualificacao_parte_autora", "nome"]),
@@ -727,6 +753,7 @@ def _summarize_structured(structured: Dict[str, Any]) -> Dict[str, Any]:
             "data_emissao": g(["dados_medicos", "relatorio_escolar", "data_emissao"]),
             "primeiro_nome_autor": g(["dados_medicos", "relatorio_escolar", "primeiro_nome_do_autor"]),
         },
+        "avaliacao_social_pericia": avaliacao_social,
     }
 
 
@@ -1053,6 +1080,13 @@ def analyze_extractions_with_openai(
                 "(dificuldades, necessidades, limitações, recomendações, desempenho). "
                 "NÃO inclua texto introdutório como 'este relatório visa fornecer informações...' ou similares.\n"
             )
+            avaliacao_social_policy = (
+                "POLÍTICA DA AVALIAÇÃO SOCIAL E PERÍCIA MÉDICA (OBRIGATÓRIA):\n"
+                "- Procure no texto a seção 'INFORMAÇÕES DA AVALIAÇÃO SOCIAL E PERÍCIA MÉDICA' (ou variações de maiúsculas/minúsculas).\n"
+                "- Se existir, identifique as três dimensões e a tabela 'Qualificadores Finais': Fatores Ambientais (e1-e5), Atividades e Participação(s) (d1-d9), Funções do Corpo (b1-b8).\n"
+                "- Preencha os qualificadores (GRAVE, MODERADA ou LEVE). Quando for LEVE, preencha notas_detalhadas no formato 'label:valor ; label:valor ; ...'.\n"
+                "- Se não houver essa seção, deixe contem_avaliacao_social_pericia_medica false e os demais null.\n"
+            )
 
             user_msg = (
                 f"Documento fonte: {source}\n"
@@ -1061,6 +1095,7 @@ def analyze_extractions_with_openai(
                 + laudo_policy
                 + conclusao_policy
                 + relatorio_escolar_policy
+                + avaliacao_social_policy
                 + "Texto:\n"
                 + chunk_text
             )

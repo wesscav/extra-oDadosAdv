@@ -357,8 +357,35 @@ function renderSummaryFromStructured(structured) {
     ]);
   }
 
+  // Resumo do resultado (avaliação social e perícia): valor inicial = montado a partir de dados_avaliacao_social_pericia (editável)
+  if (!structured.resumo_do_resultado && structured.dados_avaliacao_social_pericia) {
+    const aval = structured.dados_avaliacao_social_pericia;
+    const parts = [];
+    if (aval.contem_avaliacao_social_pericia_medica) {
+      if (String(aval.fatores_ambientais_qualificador || "").trim().toUpperCase() === "LEVE") {
+        const notas = (aval.fatores_ambientais_notas_detalhadas || "").trim();
+        parts.push(notas ? `O qualificador Fatores Ambientais deu Leve, e as notas foram: ${notas}` : "O qualificador Fatores Ambientais deu Leve.");
+      }
+      if (String(aval.atividades_participacoes_qualificador || "").trim().toUpperCase() === "LEVE") {
+        const notas = (aval.atividades_participacoes_notas_detalhadas || "").trim();
+        parts.push(notas ? `O qualificador Atividades e Participações deu Leve, e as notas foram: ${notas}` : "O qualificador Atividades e Participações deu Leve.");
+      }
+      if (String(aval.funcoes_corpo_qualificador || "").trim().toUpperCase() === "LEVE") {
+        const notas = (aval.funcoes_corpo_notas_detalhadas || "").trim();
+        parts.push(notas ? `O qualificador Funções do Corpo deu Leve, e as notas foram: ${notas}` : "O qualificador Funções do Corpo deu Leve.");
+      }
+    }
+    structured.resumo_do_resultado = parts.length ? parts.join(". ") + "." : "";
+  }
+
   // Adiciona blocos fixos restantes
   blocks.push(
+    [
+      "Resumo do resultado (avaliação social e perícia médica)",
+      [
+        ["Resumo do resultado", ["resumo_do_resultado"]],
+      ],
+    ],
     [
       "Dados Escolares/Pedagógicos",
       [
@@ -384,6 +411,7 @@ function renderSummaryFromStructured(structured) {
   function wantsTextarea(path) {
     const last = path[path.length - 1] || "";
     return (
+      last === "resumo_do_resultado" ||
       last.includes("resumo") ||
       last.includes("trecho_") ||
       last.includes("finalidade_") ||

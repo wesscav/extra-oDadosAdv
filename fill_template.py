@@ -326,6 +326,28 @@ def prepare_replacements(structured: Dict[str, Any]) -> Dict[str, str]:
     replacements["valor exato da aposentadoria – R$ ___ "] = s(first_non_null(structured, [["dados_socioeconomicos", "valor_exato_aposentadoria"]]))
     replacements['páginas do laudo social – "anexo 05, pgs. XX"'] = s(first_non_null(structured, [["dados_socioeconomicos", "paginas_laudo_social"]]))
 
+    # resumo do resultado (avaliação social e perícia médica): usa valor editado no front se existir, senão monta a partir dos dados
+    resumo_resultado_text = s(structured.get("resumo_do_resultado")).strip()
+    if not resumo_resultado_text:
+        resumo_resultado_parts: List[str] = []
+        aval = structured.get("dados_avaliacao_social_pericia") or {}
+        if aval.get("contem_avaliacao_social_pericia_medica"):
+            nome_fa = "Fatores Ambientais"
+            nome_ap = "Atividades e Participações"
+            nome_fc = "Funções do Corpo"
+            if (str(aval.get("fatores_ambientais_qualificador") or "").strip().upper() == "LEVE"):
+                notas = s(aval.get("fatores_ambientais_notas_detalhadas")).strip()
+                resumo_resultado_parts.append(f"O qualificador {nome_fa} deu Leve, e as notas foram: {notas}" if notas else f"O qualificador {nome_fa} deu Leve.")
+            if (str(aval.get("atividades_participacoes_qualificador") or "").strip().upper() == "LEVE"):
+                notas = s(aval.get("atividades_participacoes_notas_detalhadas")).strip()
+                resumo_resultado_parts.append(f"O qualificador {nome_ap} deu Leve, e as notas foram: {notas}" if notas else f"O qualificador {nome_ap} deu Leve.")
+            if (str(aval.get("funcoes_corpo_qualificador") or "").strip().upper() == "LEVE"):
+                notas = s(aval.get("funcoes_corpo_notas_detalhadas")).strip()
+                resumo_resultado_parts.append(f"O qualificador {nome_fc} deu Leve, e as notas foram: {notas}" if notas else f"O qualificador {nome_fc} deu Leve.")
+        resumo_resultado_text = ". ".join(resumo_resultado_parts) + ("." if resumo_resultado_parts else "")
+    replacements["RESUMO DO RESULTADO"] = resumo_resultado_text
+    replacements["resumo do resultado"] = resumo_resultado_text
+
     # dados processuais
     replacements["Número do benefício / NB"] = replacements.get("Número do benefício", "")
 
