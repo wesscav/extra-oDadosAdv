@@ -503,8 +503,9 @@ def _get_field_type(path: List[str]) -> str:
         'medicamento_prescrito',
     }
     
-    # Campos que devem preservar o texto original (sem formatação)
+    # Campos que devem preservar o texto original (sem formatação) - resposta da OpenAI direta
     preserve_fields = {
+        'descricao',
         'resumo',
         'resumo_continuacao',
         'conclusao_medica',

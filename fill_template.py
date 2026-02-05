@@ -262,18 +262,9 @@ def prepare_replacements(structured: Dict[str, Any]) -> Dict[str, str]:
             replacements[f"especialidade do médico {i}"] = s(laudo.get("especialidade_medico"))
             replacements[f"nome do médico {i}"] = s(laudo.get("nome_medico"))
             
-            # Descrição com verbo no início
+            # Descrição do laudo: resposta da OpenAI direta, sem lowercase/capitalization
             desc = s(laudo.get("descricao", ""))
-            if desc:
-                desc = desc.strip()
-                # Garante que começa com verbo em minúscula
-                verbos_comuns = ["recomenda", "atesta", "conclui", "indica", "sugere", "prescreve"]
-                starts_with_verb = any(desc.lower().startswith(v) for v in verbos_comuns)
-                if not starts_with_verb:
-                    desc = "recomenda " + desc
-                replacements[f"descrição do laudo {i}"] = format_paragraph_capitalization(desc)
-            else:
-                replacements[f"descrição do laudo {i}"] = ""
+            replacements[f"descrição do laudo {i}"] = desc.strip() if desc else ""
         else:
             # Laudo não existe, deixa em branco
             replacements[f"data do laudo médico {i}"] = ""
@@ -285,14 +276,14 @@ def prepare_replacements(structured: Dict[str, Any]) -> Dict[str, str]:
     replacements["data de emissão do relatório escolar"] = format_date_to_dd_mm_yyyy(first_non_null(structured, [["dados_medicos", "relatorio_escolar", "data_emissao"]]))
     replacements["primeiro nome do autor"] = s(first_non_null(structured, [["dados_medicos", "relatorio_escolar", "primeiro_nome_do_autor"]]))
     resumo_esc = s(first_non_null(structured, [["dados_medicos", "relatorio_escolar", "resumo"]]))
-    replacements["resumo do relatório escolar"] = format_paragraph_capitalization(resumo_esc) if resumo_esc else ""
+    replacements["resumo do relatório escolar"] = resumo_esc.strip() if resumo_esc else ""
     resumo_cont = s(first_non_null(structured, [["dados_medicos", "relatorio_escolar", "resumo_continuacao"]]))
-    replacements["continuação do resumo do relatório escolar"] = format_paragraph_capitalization(resumo_cont) if resumo_cont else ""
+    replacements["continuação do resumo do relatório escolar"] = resumo_cont.strip() if resumo_cont else ""
     replacements["continua o resumo do relatório escolar"] = replacements["continuação do resumo do relatório escolar"]
 
     # diagnostico e tratamento
     conclusao = s(first_non_null(structured, [["dados_medicos", "diagnostico_final_tratamento", "conclusao_medica"]]))
-    replacements["conclusão médica"] = format_paragraph_capitalization(conclusao) if conclusao else ""
+    replacements["conclusão médica"] = conclusao.strip() if conclusao else ""
     
     # Novos campos separados: deficiencia e CID
     deficiencia = s(first_non_null(structured, [["dados_medicos", "diagnostico_final_tratamento", "deficiencia"]]))
